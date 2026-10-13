@@ -1,0 +1,120 @@
+// @bounded-authority/client: the wire contract, contract cases, and vectors a client needs for the
+// bounded authority service. This release carries one function family: the REQ-2 reauthorization
+// request digest. See docs/req2-projection.md.
+import { err, fail, jsonDecode, ok } from "@bounded-authority-protocol/verifier";
+import type { Result } from "@bounded-authority-protocol/verifier";
+import {
+  closedKeysOf,
+  parseConsumerId,
+  parseInvocationId,
+  parseMaterializedChild,
+  parseParentContext,
+  parseParentIdentity,
+  parseRequestedChild,
+  readMember,
+  recordOf,
+  wellFormedText,
+} from "./boundary.js";
+import { encodeProjection, requestSha256 } from "./projection.js";
+import type {
+  MaterializedChild,
+  ParentContext,
+  ReauthorizationDigest,
+  ReauthorizationDigestInput,
+  RequestedChild,
+} from "./types.js";
+import { fromTagged, wireChildToTyped } from "./wire.js";
+import { utf8 } from "./bytes.js";
+
+export type {
+  CumulativePolicy,
+  JsonValue,
+  MaterializedChild,
+  Operation,
+  ParentContext,
+  ParentIdentity,
+  ReauthorizationDigest,
+  ReauthorizationDigestInput,
+  RequestedChild,
+  Selector,
+} from "./types.js";
+export type { Result } from "@bounded-authority-protocol/verifier";
+
+// Every public function converts any failure into the one closed error. That includes failures
+// that are not protocol refusals (a throwing getter or Proxy trap in caller input, for example):
+// the caller's input is untrusted, and a refusal is the only outcome it can produce.
+function guarded<T>(fn: () => T): Result<T> {
+  try {
+    return ok(fn());
+  } catch {
+    return err();
+  }
+}
+
+/**
+ * Parses a child as it appears in the JSON request body (`body.child`, snake_case members) into
+ * the typed form. `audiences`, `operations`, `not_before`, and `expires_at` must be present and
+ * may be `null` (inherit); `cumulative_policy` is omitted when there is none. An explicit null
+ * policy, a null optional policy member, and any unknown member are refused.
+ *
+ * The input is an already-parsed JavaScript value, so this function cannot see how the JSON text
+ * spelled things. It requires that the text had no duplicate member names and spelled every
+ * integer field as a plain integer (not `2500.0`, `1E2`, or `-0.0`). To check the text itself, use
+ * `childFromWireText`.
+ */
+export function childFromWire(wire: unknown): Result<RequestedChild> {
+  return guarded(() => parseRequestedChild(wireChildToTyped(wire)));
+}
+
+/**
+ * Like `childFromWire`, from the JSON text of `body.child`. Refuses duplicate member names, and
+ * refuses an integer field (a bound, a timestamp, a policy limit) spelled with a fraction or an
+ * exponent, such as `2500.0`, `1E2`, or `-0.0`, as the service does. JSON values in `equals` and
+ * `one_of` selectors may still be spelled any valid way: they canonicalize to the same bytes.
+ */
+export function childFromWireText(jsonText: string): Result<RequestedChild> {
+  return guarded(() => {
+    // A lone surrogate has no UTF-8 form; the encoder would silently substitute U+FFFD.
+    return parseRequestedChild(wireChildToTyped(fromTagged(jsonDecode(utf8(wellFormedText(jsonText))))));
+  });
+}
+
+/**
+ * Fills a child's `null` audiences, operations, not-before, and expiry from the parent's exact
+ * values. Refuses a thumbprint equal to the parent's and any parent whose contract major is not 2.
+ * The cumulative policy is never inherited.
+ */
+export function materializeChild(child: RequestedChild, parent: ParentContext): Result<MaterializedChild> {
+  return guarded(() => {
+    const p = parseParentContext(parent);
+    const c = parseRequestedChild(child);
+    if (c.holderThumbprint === p.holderThumbprint) fail("child holder thumbprint equals the parent's");
+    return {
+      holderThumbprint: c.holderThumbprint,
+      audiences: c.audiences ?? p.audiences,
+      operations: c.operations ?? p.operations,
+      notBefore: c.notBefore ?? p.notBefore,
+      expiresAt: c.expiresAt ?? p.expiresAt,
+      ...(c.cumulativePolicy === undefined ? {} : { cumulativePolicy: c.cumulativePolicy }),
+    };
+  });
+}
+
+/**
+ * Computes the REQ-2 projection and its digest for a reauthorization request. Put
+ * `requestSha256` in `cast_arguments.request_sha256` of the v2 proof for operation
+ * `authority.grants.reauthorize`. Every refusal is the same closed `{ ok: false }`.
+ */
+export function reauthorizationRequestDigest(input: ReauthorizationDigestInput): Result<ReauthorizationDigest> {
+  return guarded(() => {
+    const r = recordOf(input);
+    closedKeysOf(r, ["parent", "invocationId", "consumerId", "child"]);
+    const parent = parseParentIdentity(readMember(r, "parent"));
+    const invocationId = parseInvocationId(readMember(r, "invocationId"));
+    const consumerId = parseConsumerId(readMember(r, "consumerId"));
+    const child = parseMaterializedChild(readMember(r, "child"));
+    if (child.holderThumbprint === parent.holderThumbprint) fail("child holder thumbprint equals the parent's");
+    const projection = encodeProjection({ parentJti: parent.jti, invocationId, consumerId, child });
+    return { projection, requestSha256: requestSha256(projection) };
+  });
+}

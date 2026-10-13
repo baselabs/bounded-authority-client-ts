@@ -1,0 +1,910 @@
+{
+  "description": "Neutral REQ-2 reauthorization request digest vectors for @bounded-authority/client. Each vector gives a child exactly as it appears in a request body, the shared parent context it inherits from, and the expected projection and request_sha256.",
+  "expected_bytes_provenance": "expected bytes computed with the service reference implementation for the REQ-2 contract",
+  "parent": {
+    "audiences": [
+      "https://docs.example",
+      "https://deploy.example",
+      "https://devices.example",
+      "https://data.example",
+      "https://calendar.example",
+      "https://messages.example",
+      "https://payments.example"
+    ],
+    "contract_major": 2,
+    "expires_at": 1800003600,
+    "holder_thumbprint": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+    "jti": "parent-grant-01",
+    "not_before": 1800000000,
+    "operations": [
+      {
+        "name": "docs.read",
+        "selectors": [
+          {
+            "kind": "one_of",
+            "path": [
+              "folder"
+            ],
+            "values": [
+              "reports",
+              "specs",
+              "notes"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "deploy.release",
+        "selectors": [
+          {
+            "kind": "equals",
+            "path": [
+              "service"
+            ],
+            "value": "api"
+          },
+          {
+            "kind": "one_of",
+            "path": [
+              "stage"
+            ],
+            "values": [
+              "staging",
+              "canary",
+              "production"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "data.export",
+        "selectors": [
+          {
+            "kind": "lte",
+            "path": [
+              "row_count"
+            ],
+            "value": 10000
+          },
+          {
+            "kind": "equals",
+            "path": [
+              "format"
+            ],
+            "value": "csv"
+          }
+        ]
+      },
+      {
+        "name": "calendar.schedule",
+        "selectors": [
+          {
+            "kind": "lte",
+            "path": [
+              "duration_minutes"
+            ],
+            "value": 120
+          }
+        ]
+      },
+      {
+        "name": "device.set_temperature",
+        "selectors": [
+          {
+            "kind": "gte",
+            "path": [
+              "celsius"
+            ],
+            "value": 10
+          },
+          {
+            "kind": "lte",
+            "path": [
+              "celsius"
+            ],
+            "value": 30
+          }
+        ]
+      },
+      {
+        "name": "messages.send",
+        "selectors": [
+          {
+            "kind": "all"
+          }
+        ]
+      },
+      {
+        "name": "payments.transfer",
+        "selectors": [
+          {
+            "kind": "equals",
+            "path": [
+              "currency"
+            ],
+            "value": "EUR"
+          },
+          {
+            "kind": "lte",
+            "path": [
+              "amount"
+            ],
+            "value": 10000
+          }
+        ]
+      }
+    ]
+  },
+  "thumbprint_seeds": {
+    "child_a": "base64url of the 32 bytes 0x20 through 0x3f",
+    "child_b": "base64url of the 32 bytes 0x40 through 0x5f",
+    "parent": "base64url of the 32 bytes 0x00 through 0x1f"
+  },
+  "vectors": [
+    {
+      "child": {
+        "audiences": [
+          "https://data.example"
+        ],
+        "expires_at": 1800000300,
+        "holder_thumbprint": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+        "not_before": 1800000000,
+        "operations": [
+          {
+            "name": "data.export",
+            "selectors": [
+              {
+                "kind": "equals",
+                "path": [
+                  "dataset"
+                ],
+                "value": "inventory"
+              },
+              {
+                "kind": "lte",
+                "path": [
+                  "row_count"
+                ],
+                "value": 500
+              },
+              {
+                "kind": "equals",
+                "path": [
+                  "format"
+                ],
+                "value": "csv"
+              }
+            ]
+          }
+        ]
+      },
+      "consumer_id": "demo-agent",
+      "invocation_id": "5b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+      "name": "lte-child",
+      "projection_hex": "0000000f42412d5245415554482d5245512d320000000f706172656e742d6772616e742d30310000002435623166326333642d346535662d346136622d386337642d3965306631613262336334640000000a64656d6f2d6167656e740000002b494345694979516c4a69636f4b536f724c4330754c7a41784d6a4d304e5459334f446b364f7a7739506a380000001c000000010000001468747470733a2f2f646174612e6578616d706c650000009f00000001000000970000000b646174612e6578706f7274000000840000000300000023000000036c7465000000110000000100000009726f775f636f756e74000000033530300000002500000006657175616c730000000e0000000100000006666f726d61740000000522637376220000002c00000006657175616c730000000f0000000100000007646174617365740000000b22696e76656e746f7279220000000a313830303030303030300000000a31383030303030333030000000046e756c6c",
+      "request_sha256": "ZEJZyH3UFj_kT81x2WOW-gcPLBOSqtOFqBKsbTT-VO4"
+    },
+    {
+      "child": {
+        "audiences": [
+          "https://deploy.example"
+        ],
+        "expires_at": 1800000300,
+        "holder_thumbprint": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+        "not_before": 1800000000,
+        "operations": [
+          {
+            "name": "deploy.release",
+            "selectors": [
+              {
+                "kind": "equals",
+                "path": [
+                  "service"
+                ],
+                "value": "api"
+              },
+              {
+                "kind": "one_of",
+                "path": [
+                  "stage"
+                ],
+                "values": [
+                  "staging",
+                  "canary"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "consumer_id": "demo-agent",
+      "invocation_id": "5b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4e",
+      "name": "one-of-narrowed-child",
+      "projection_hex": "0000000f42412d5245415554482d5245512d320000000f706172656e742d6772616e742d30310000002435623166326333642d346535662d346136622d386337642d3965306631613262336334650000000a64656d6f2d6167656e740000002b494345694979516c4a69636f4b536f724c4330754c7a41784d6a4d304e5459334f446b364f7a7739506a380000001e000000010000001668747470733a2f2f6465706c6f792e6578616d706c650000008c00000001000000840000000e6465706c6f792e72656c656173650000006e000000020000002600000006657175616c730000000f0000000100000007736572766963650000000522617069220000003c000000066f6e655f6f660000000d000000010000000573746167650000001d00000002000000082263616e61727922000000092273746167696e67220000000a313830303030303030300000000a31383030303030333030000000046e756c6c",
+      "request_sha256": "shLO25NKBfqXGu1mnS0SmUbCxDkeZJFzMlnapcXQ_GM"
+    },
+    {
+      "child": {
+        "audiences": [
+          "https://messages.example"
+        ],
+        "cumulative_policy": {
+          "max_count": 20,
+          "window_seconds": 3600
+        },
+        "expires_at": 1800000300,
+        "holder_thumbprint": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+        "not_before": 1800000000,
+        "operations": [
+          {
+            "name": "messages.send",
+            "selectors": [
+              {
+                "kind": "equals",
+                "path": [
+                  "channel"
+                ],
+                "value": "email"
+              }
+            ]
+          }
+        ]
+      },
+      "consumer_id": "demo-assistant",
+      "invocation_id": "5b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4f",
+      "name": "child-with-policy",
+      "projection_hex": "0000000f42412d5245415554482d5245512d320000000f706172656e742d6772616e742d30310000002435623166326333642d346535662d346136622d386337642d3965306631613262336334660000000e64656d6f2d617373697374616e740000002b494345694979516c4a69636f4b536f724c4330754c7a41784d6a4d304e5459334f446b364f7a7739506a3800000020000000010000001868747470733a2f2f6d657373616765732e6578616d706c650000004d00000001000000450000000d6d657373616765732e73656e6400000030000000010000002800000006657175616c730000000f00000001000000076368616e6e656c0000000722656d61696c220000000a313830303030303030300000000a313830303030303330300000002e0000000433363030000000023230000000046e756c6c000000046e756c6c000000046e756c6c000000046e756c6c",
+      "request_sha256": "A2tvJ94Ytl1VvoYOQcMkgFyNcnuPx3iK-Lf5tmgmWzY"
+    },
+    {
+      "child": {
+        "audiences": [
+          "https://data.example"
+        ],
+        "cumulative_policy": {
+          "distinct_path": [
+            "dataset"
+          ],
+          "max_count": 10,
+          "max_distinct": 3,
+          "max_sum": 5000,
+          "sum_path": [
+            "row_count"
+          ],
+          "window_seconds": 86400
+        },
+        "expires_at": 1800000300,
+        "holder_thumbprint": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+        "not_before": 1800000000,
+        "operations": [
+          {
+            "name": "data.export",
+            "selectors": [
+              {
+                "kind": "lte",
+                "path": [
+                  "row_count"
+                ],
+                "value": 1000
+              }
+            ]
+          }
+        ]
+      },
+      "consumer_id": "demo-agent",
+      "invocation_id": "5b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c50",
+      "name": "child-with-full-policy",
+      "projection_hex": "0000000f42412d5245415554482d5245512d320000000f706172656e742d6772616e742d30310000002435623166326333642d346535662d346136622d386337642d3965306631613262336335300000000a64656d6f2d6167656e740000002b494345694979516c4a69636f4b536f724c4330754c7a41784d6a4d304e5459334f446b364f7a7739506a380000001c000000010000001468747470733a2f2f646174612e6578616d706c6500000047000000010000003f0000000b646174612e6578706f72740000002c0000000100000024000000036c7465000000110000000100000009726f775f636f756e7400000004313030300000000a313830303030303030300000000a3138303030303033303000000044000000053836343030000000023130000000110000000100000009726f775f636f756e7400000004353030300000000f0000000100000007646174617365740000000133",
+      "request_sha256": "o_8-ZLssb0i8c6BFVoUHzoLWspJKotxFFRsg3f2OHRM"
+    },
+    {
+      "child": {
+        "audiences": [
+          "https://docs.example"
+        ],
+        "expires_at": 1800000600,
+        "holder_thumbprint": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+        "not_before": 1800000060,
+        "operations": [
+          {
+            "name": "docs.read",
+            "selectors": [
+              {
+                "kind": "equals",
+                "path": [
+                  "folder"
+                ],
+                "value": "reports"
+              }
+            ]
+          }
+        ]
+      },
+      "consumer_id": "demo-assistant",
+      "invocation_id": "5b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c51",
+      "name": "child-without-policy",
+      "projection_hex": "0000000f42412d5245415554482d5245512d320000000f706172656e742d6772616e742d30310000002435623166326333642d346535662d346136622d386337642d3965306631613262336335310000000e64656d6f2d617373697374616e740000002b494345694979516c4a69636f4b536f724c4330754c7a41784d6a4d304e5459334f446b364f7a7739506a380000001c000000010000001468747470733a2f2f646f63732e6578616d706c650000004a000000010000004200000009646f63732e7265616400000031000000010000002900000006657175616c730000000e0000000100000006666f6c64657200000009227265706f727473220000000a313830303030303036300000000a31383030303030363030000000046e756c6c",
+      "request_sha256": "FKmF9ldm6KArDo9XtU3-gJrpcjqcQRabFJlqCbjTI3c"
+    },
+    {
+      "child": {
+        "audiences": [
+          "https://devices.example"
+        ],
+        "expires_at": 1800000300,
+        "holder_thumbprint": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+        "not_before": 1800000000,
+        "operations": [
+          {
+            "name": "device.set_temperature",
+            "selectors": [
+              {
+                "kind": "lte",
+                "path": [
+                  "celsius"
+                ],
+                "value": 24
+              },
+              {
+                "kind": "gte",
+                "path": [
+                  "celsius"
+                ],
+                "value": 16
+              },
+              {
+                "kind": "equals",
+                "path": [
+                  "device"
+                ],
+                "value": "thermostat-1"
+              }
+            ]
+          }
+        ]
+      },
+      "consumer_id": "demo-agent",
+      "invocation_id": "5b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c52",
+      "name": "device-range-child",
+      "projection_hex": "0000000f42412d5245415554482d5245512d320000000f706172656e742d6772616e742d30310000002435623166326333642d346535662d346136622d386337642d3965306631613262336335320000000a64656d6f2d6167656e740000002b494345694979516c4a69636f4b536f724c4330754c7a41784d6a4d304e5459334f446b364f7a7739506a380000001f000000010000001768747470733a2f2f646576696365732e6578616d706c65000000a4000000010000009c000000166465766963652e7365745f74656d70657261747572650000007e0000000300000020000000036774650000000f000000010000000763656c7369757300000002313600000020000000036c74650000000f000000010000000763656c736975730000000232340000002e00000006657175616c730000000e00000001000000066465766963650000000e22746865726d6f737461742d31220000000a313830303030303030300000000a31383030303030333030000000046e756c6c",
+      "request_sha256": "Jmqriuq_ilIgyr3kQ68Y88dLyfMZNRBszARFmKdD-NM"
+    },
+    {
+      "child": {
+        "audiences": [
+          "https://calendar.example"
+        ],
+        "expires_at": 1800000300,
+        "holder_thumbprint": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+        "not_before": 1800000000,
+        "operations": [
+          {
+            "name": "calendar.schedule",
+            "selectors": [
+              {
+                "kind": "lte",
+                "path": [
+                  "duration_minutes"
+                ],
+                "value": 60
+              },
+              {
+                "kind": "one_of",
+                "path": [
+                  "calendar"
+                ],
+                "values": [
+                  "team",
+                  "personal"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "consumer_id": "demo-assistant",
+      "invocation_id": "5b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c53",
+      "name": "calendar-child",
+      "projection_hex": "0000000f42412d5245415554482d5245512d320000000f706172656e742d6772616e742d30310000002435623166326333642d346535662d346136622d386337642d3965306631613262336335330000000e64656d6f2d617373697374616e740000002b494345694979516c4a69636f4b536f724c4330754c7a41784d6a4d304e5459334f446b364f7a7739506a3800000020000000010000001868747470733a2f2f63616c656e6461722e6578616d706c6500000094000000010000008c0000001163616c656e6461722e7363686564756c65000000730000000200000029000000036c74650000001800000001000000106475726174696f6e5f6d696e757465730000000236300000003e000000066f6e655f6f6600000010000000010000000863616c656e6461720000001c000000020000000a22706572736f6e616c2200000006227465616d220000000a313830303030303030300000000a31383030303030333030000000046e756c6c",
+      "request_sha256": "-npgvnmghsKEBa9qL2tSNsjcqohwUH_pHXQ7oVgKBMM"
+    },
+    {
+      "child": {
+        "audiences": [
+          "https://payments.example"
+        ],
+        "cumulative_policy": {
+          "max_sum": 5000,
+          "sum_path": [
+            "amount"
+          ],
+          "window_seconds": 86400
+        },
+        "expires_at": 1800000300,
+        "holder_thumbprint": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+        "not_before": 1800000000,
+        "operations": [
+          {
+            "name": "payments.transfer",
+            "selectors": [
+              {
+                "kind": "equals",
+                "path": [
+                  "currency"
+                ],
+                "value": "EUR"
+              },
+              {
+                "kind": "lte",
+                "path": [
+                  "amount"
+                ],
+                "value": 2500
+              }
+            ]
+          }
+        ]
+      },
+      "consumer_id": "demo-agent",
+      "invocation_id": "5b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c54",
+      "name": "money-child-with-sum-policy",
+      "projection_hex": "0000000f42412d5245415554482d5245512d320000000f706172656e742d6772616e742d30310000002435623166326333642d346535662d346136622d386337642d3965306631613262336335340000000a64656d6f2d6167656e740000002b494345694979516c4a69636f4b536f724c4330754c7a41784d6a4d304e5459334f446b364f7a7739506a3800000020000000010000001868747470733a2f2f7061796d656e74732e6578616d706c6500000075000000010000006d000000117061796d656e74732e7472616e73666572000000540000000200000021000000036c74650000000e0000000100000006616d6f756e7400000004323530300000002700000006657175616c7300000010000000010000000863757272656e63790000000522455552220000000a313830303030303030300000000a313830303030303330300000003b000000053836343030000000046e756c6c0000000e0000000100000006616d6f756e740000000435303030000000046e756c6c000000046e756c6c",
+      "request_sha256": "VFmkTHF7mREmICgGeLs16Xj5-G-7B0LDuKJ5SdLJQN8"
+    },
+    {
+      "child": {
+        "audiences": null,
+        "expires_at": null,
+        "holder_thumbprint": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+        "not_before": null,
+        "operations": null
+      },
+      "consumer_id": "demo-assistant",
+      "invocation_id": "5b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c55",
+      "name": "null-inheritance",
+      "projection_hex": "0000000f42412d5245415554482d5245512d320000000f706172656e742d6772616e742d30310000002435623166326333642d346535662d346136622d386337642d3965306631613262336335350000000e64656d6f2d617373697374616e740000002b5145464351305246526b64495355704c5445314f54314252556c4e5556565a5857466c6157317864586c38000000bd000000070000001868747470733a2f2f63616c656e6461722e6578616d706c650000001468747470733a2f2f646174612e6578616d706c650000001668747470733a2f2f6465706c6f792e6578616d706c650000001768747470733a2f2f646576696365732e6578616d706c650000001468747470733a2f2f646f63732e6578616d706c650000001868747470733a2f2f6d657373616765732e6578616d706c650000001868747470733a2f2f7061796d656e74732e6578616d706c65000002c4000000070000004b0000001163616c656e6461722e7363686564756c6500000032000000010000002a000000036c74650000001800000001000000106475726174696f6e5f6d696e7574657300000003313230000000690000000b646174612e6578706f7274000000560000000200000025000000036c7465000000110000000100000009726f775f636f756e740000000531303030300000002500000006657175616c730000000e0000000100000006666f726d6174000000052263737622000000940000000e6465706c6f792e72656c656173650000007e000000020000002600000006657175616c730000000f0000000100000007736572766963650000000522617069220000004c000000066f6e655f6f660000000d000000010000000573746167650000002d00000003000000082263616e617279220000000c2270726f64756374696f6e22000000092273746167696e67220000006a000000166465766963652e7365745f74656d70657261747572650000004c0000000200000020000000036774650000000f000000010000000763656c7369757300000002313000000020000000036c74650000000f000000010000000763656c736975730000000233300000006000000009646f63732e726561640000004f0000000100000047000000066f6e655f6f660000000e0000000100000006666f6c646572000000270000000300000007226e6f7465732200000009227265706f727473220000000722737065637322000000240000000d6d657373616765732e73656e640000000f000000010000000700000003616c6c0000006e000000117061796d656e74732e7472616e73666572000000550000000200000022000000036c74650000000e0000000100000006616d6f756e740000000531303030300000002700000006657175616c7300000010000000010000000863757272656e63790000000522455552220000000a313830303030303030300000000a31383030303033363030000000046e756c6c",
+      "request_sha256": "qUoDl0BVrt_pQ7at4yrvUeTU5U0rmE9FV-B2Q7RQoq0"
+    },
+    {
+      "child": {
+        "audiences": [
+          "https://messages.example",
+          "https://docs.example"
+        ],
+        "expires_at": 1800000900,
+        "holder_thumbprint": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+        "not_before": null,
+        "operations": null
+      },
+      "consumer_id": "demo-agent",
+      "invocation_id": "5b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c56",
+      "name": "null-inheritance-partial",
+      "projection_hex": "0000000f42412d5245415554482d5245512d320000000f706172656e742d6772616e742d30310000002435623166326333642d346535662d346136622d386337642d3965306631613262336335360000000a64656d6f2d6167656e740000002b5145464351305246526b64495355704c5445314f54314252556c4e5556565a5857466c6157317864586c3800000038000000020000001468747470733a2f2f646f63732e6578616d706c650000001868747470733a2f2f6d657373616765732e6578616d706c65000002c4000000070000004b0000001163616c656e6461722e7363686564756c6500000032000000010000002a000000036c74650000001800000001000000106475726174696f6e5f6d696e7574657300000003313230000000690000000b646174612e6578706f7274000000560000000200000025000000036c7465000000110000000100000009726f775f636f756e740000000531303030300000002500000006657175616c730000000e0000000100000006666f726d6174000000052263737622000000940000000e6465706c6f792e72656c656173650000007e000000020000002600000006657175616c730000000f0000000100000007736572766963650000000522617069220000004c000000066f6e655f6f660000000d000000010000000573746167650000002d00000003000000082263616e617279220000000c2270726f64756374696f6e22000000092273746167696e67220000006a000000166465766963652e7365745f74656d70657261747572650000004c0000000200000020000000036774650000000f000000010000000763656c7369757300000002313000000020000000036c74650000000f000000010000000763656c736975730000000233300000006000000009646f63732e726561640000004f0000000100000047000000066f6e655f6f660000000e0000000100000006666f6c646572000000270000000300000007226e6f7465732200000009227265706f727473220000000722737065637322000000240000000d6d657373616765732e73656e640000000f000000010000000700000003616c6c0000006e000000117061796d656e74732e7472616e73666572000000550000000200000022000000036c74650000000e0000000100000006616d6f756e740000000531303030300000002700000006657175616c7300000010000000010000000863757272656e63790000000522455552220000000a313830303030303030300000000a31383030303030393030000000046e756c6c",
+      "request_sha256": "NtYHAeII5MKK3YpZU9q0sgcMsKhDoXE2FUbdYmvb1uY"
+    },
+    {
+      "child": {
+        "audiences": [
+          "https://devices.example",
+          "https://docs.example",
+          "https://docs.example",
+          "https://deploy.example",
+          "https://devices.example"
+        ],
+        "expires_at": 1800000300,
+        "holder_thumbprint": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+        "not_before": 1800000000,
+        "operations": [
+          {
+            "name": "docs.read",
+            "selectors": [
+              {
+                "kind": "all"
+              }
+            ]
+          }
+        ]
+      },
+      "consumer_id": "demo-agent",
+      "invocation_id": "5b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c57",
+      "name": "multi-audience-sort-dedup",
+      "projection_hex": "0000000f42412d5245415554482d5245512d320000000f706172656e742d6772616e742d30310000002435623166326333642d346535662d346136622d386337642d3965306631613262336335370000000a64656d6f2d6167656e740000002b494345694979516c4a69636f4b536f724c4330754c7a41784d6a4d304e5459334f446b364f7a7739506a3800000051000000030000001668747470733a2f2f6465706c6f792e6578616d706c650000001768747470733a2f2f646576696365732e6578616d706c650000001468747470733a2f2f646f63732e6578616d706c6500000028000000010000002000000009646f63732e726561640000000f000000010000000700000003616c6c0000000a313830303030303030300000000a31383030303030333030000000046e756c6c",
+      "request_sha256": "oJnAtTj5nkOgRk0S299Cb8XHOXYGn6AunXkI44J2Wuc"
+    },
+    {
+      "child": {
+        "audiences": [
+          "https://data.example"
+        ],
+        "expires_at": 1800000300,
+        "holder_thumbprint": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+        "not_before": 1800000000,
+        "operations": [
+          {
+            "name": "messages.send",
+            "selectors": [
+              {
+                "kind": "all"
+              }
+            ]
+          },
+          {
+            "name": "z",
+            "selectors": [
+              {
+                "kind": "all"
+              }
+            ]
+          },
+          {
+            "name": "docs.read",
+            "selectors": [
+              {
+                "kind": "all"
+              }
+            ]
+          },
+          {
+            "name": "b",
+            "selectors": [
+              {
+                "kind": "equals",
+                "path": [
+                  "format"
+                ],
+                "value": "csv"
+              }
+            ]
+          },
+          {
+            "name": "data.export",
+            "selectors": [
+              {
+                "kind": "lte",
+                "path": [
+                  "row_count"
+                ],
+                "value": 100
+              }
+            ]
+          }
+        ]
+      },
+      "consumer_id": "demo-agent",
+      "invocation_id": "5b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c58",
+      "name": "multi-operation-sort",
+      "projection_hex": "0000000f42412d5245415554482d5245512d320000000f706172656e742d6772616e742d30310000002435623166326333642d346535662d346136622d386337642d3965306631613262336335380000000a64656d6f2d6167656e740000002b494345694979516c4a69636f4b536f724c4330754c7a41784d6a4d304e5459334f446b364f7a7739506a380000001c000000010000001468747470733a2f2f646174612e6578616d706c65000000e8000000050000003600000001620000002d000000010000002500000006657175616c730000000e0000000100000006666f726d61740000000522637376220000003e0000000b646174612e6578706f72740000002b0000000100000023000000036c7465000000110000000100000009726f775f636f756e74000000033130300000002000000009646f63732e726561640000000f000000010000000700000003616c6c000000240000000d6d657373616765732e73656e640000000f000000010000000700000003616c6c00000018000000017a0000000f000000010000000700000003616c6c0000000a313830303030303030300000000a31383030303030333030000000046e756c6c",
+      "request_sha256": "hQeIAIzR6_JJbVzOavQC8cKKx-Ztw7BE4_M8BhSUfYQ"
+    },
+    {
+      "child": {
+        "audiences": [
+          "https://u.example/😀",
+          "https://u.example/￿",
+          "https://u.example/é",
+          "https://u.example/z"
+        ],
+        "expires_at": 1800000300,
+        "holder_thumbprint": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+        "not_before": 1800000000,
+        "operations": [
+          {
+            "name": "docs.😀",
+            "selectors": [
+              {
+                "kind": "all"
+              }
+            ]
+          },
+          {
+            "name": "docs.￿",
+            "selectors": [
+              {
+                "kind": "all"
+              }
+            ]
+          },
+          {
+            "name": "docs.édit",
+            "selectors": [
+              {
+                "kind": "equals",
+                "path": [
+                  "label"
+                ],
+                "value": "café 😀"
+              },
+              {
+                "kind": "one_of",
+                "path": [
+                  "label"
+                ],
+                "values": [
+                  "😀",
+                  "￿",
+                  "é",
+                  "z",
+                  "Z"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "consumer_id": "demo-assistant",
+      "invocation_id": "5b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c59",
+      "name": "unicode-order",
+      "projection_hex": "0000000f42412d5245415554482d5245512d320000000f706172656e742d6772616e742d30310000002435623166326333642d346535662d346136622d386337642d3965306631613262336335390000000e64656d6f2d617373697374616e740000002b494345694979516c4a69636f4b536f724c4330754c7a41784d6a4d304e5459334f446b364f7a7739506a3800000066000000040000001368747470733a2f2f752e6578616d706c652f7a0000001468747470733a2f2f752e6578616d706c652fc3a90000001568747470733a2f2f752e6578616d706c652fefbfbf0000001668747470733a2f2f752e6578616d706c652ff09f9880000000e400000003000000950000000a646f63732ec3a964697400000083000000020000002b00000006657175616c730000000d00000001000000056c6162656c0000000c22636166c3a920f09f9880220000004c000000066f6e655f6f660000000d00000001000000056c6162656c0000002d0000000500000003225a2200000003227a220000000422c3a9220000000522efbfbf220000000622f09f9880220000001f00000008646f63732eefbfbf0000000f000000010000000700000003616c6c0000002000000009646f63732ef09f98800000000f000000010000000700000003616c6c0000000a313830303030303030300000000a31383030303030333030000000046e756c6c",
+      "request_sha256": "89G7IHDAaUq0b0VyMV_Q6gJXC4dGP8nUOhRuCA0LObU"
+    },
+    {
+      "child": {
+        "audiences": [
+          "https://data.example"
+        ],
+        "cumulative_policy": {
+          "distinct_path": [
+            "dataset"
+          ],
+          "max_count": 9007199254740991,
+          "max_distinct": 1024,
+          "max_sum": 9007199254740991,
+          "sum_path": [
+            "row_count"
+          ],
+          "window_seconds": 2678400
+        },
+        "expires_at": 9007199254740991,
+        "holder_thumbprint": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+        "not_before": 0,
+        "operations": [
+          {
+            "name": "data.export",
+            "selectors": [
+              {
+                "kind": "lte",
+                "path": [
+                  "row_count"
+                ],
+                "value": 9007199254740991
+              },
+              {
+                "kind": "gte",
+                "path": [
+                  "row_count"
+                ],
+                "value": -9007199254740991
+              },
+              {
+                "kind": "lte",
+                "path": [
+                  "limit"
+                ],
+                "value": 9007199254740990
+              },
+              {
+                "kind": "gte",
+                "path": [
+                  "floor"
+                ],
+                "value": 0
+              },
+              {
+                "kind": "equals",
+                "path": [
+                  "count"
+                ],
+                "value": 9007199254740991
+              }
+            ]
+          }
+        ]
+      },
+      "consumer_id": "demo-agent",
+      "invocation_id": "5b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c5a",
+      "name": "integer-bounds-near-2-53",
+      "projection_hex": "0000000f42412d5245415554482d5245512d320000000f706172656e742d6772616e742d30310000002435623166326333642d346535662d346136622d386337642d3965306631613262336335610000000a64656d6f2d6167656e740000002b494345694979516c4a69636f4b536f724c4330754c7a41784d6a4d304e5459334f446b364f7a7739506a380000001c000000010000001468747470733a2f2f646174612e6578616d706c650000010c00000001000001040000000b646174612e6578706f7274000000f1000000050000001d000000036774650000000d0000000100000005666c6f6f7200000001300000003100000003677465000000110000000100000009726f775f636f756e74000000112d393030373139393235343734303939310000002c000000036c74650000000d00000001000000056c696d6974000000103930303731393932353437343039393000000030000000036c7465000000110000000100000009726f775f636f756e7400000010393030373139393235343734303939310000002f00000006657175616c730000000d0000000100000005636f756e740000001039303037313939323534373430393931000000013000000010393030373139393235343734303939310000006300000007323637383430300000001039303037313939323534373430393931000000110000000100000009726f775f636f756e7400000010393030373139393235343734303939310000000f0000000100000007646174617365740000000431303234",
+      "request_sha256": "Hzr1U7oyNicyDqO7MWoSBteVa3N6HKs133BxWzdPV6E"
+    },
+    {
+      "child": {
+        "audiences": [
+          "https://data.example"
+        ],
+        "expires_at": 1800000300,
+        "holder_thumbprint": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+        "not_before": 1800000000,
+        "operations": [
+          {
+            "name": "data.export",
+            "selectors": [
+              {
+                "kind": "one_of",
+                "path": [
+                  "dataset"
+                ],
+                "values": [
+                  "orders",
+                  "inventory",
+                  "orders",
+                  "customers"
+                ]
+              },
+              {
+                "kind": "equals",
+                "path": [
+                  "meta"
+                ],
+                "value": {
+                  "a": null,
+                  "b": [
+                    1,
+                    2.5,
+                    "x"
+                  ]
+                }
+              },
+              {
+                "kind": "lte",
+                "path": [
+                  "row_count"
+                ],
+                "value": 5
+              },
+              {
+                "kind": "gte",
+                "path": [
+                  "row_count"
+                ],
+                "value": 5
+              },
+              {
+                "kind": "all"
+              },
+              {
+                "kind": "equals",
+                "path": [
+                  "meta"
+                ],
+                "value": {
+                  "a": null,
+                  "b": [
+                    1,
+                    2.5,
+                    "x"
+                  ]
+                }
+              },
+              {
+                "kind": "one_of",
+                "path": [
+                  "dataset"
+                ],
+                "values": [
+                  "inventory",
+                  "customers",
+                  "orders"
+                ]
+              },
+              {
+                "kind": "all"
+              },
+              {
+                "kind": "equals",
+                "path": [
+                  "format"
+                ],
+                "value": "csv"
+              },
+              {
+                "kind": "lte",
+                "path": [
+                  "row_count"
+                ],
+                "value": 5
+              }
+            ]
+          }
+        ]
+      },
+      "consumer_id": "demo-agent",
+      "invocation_id": "5b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c5b",
+      "name": "selector-sort-dedup",
+      "projection_hex": "0000000f42412d5245415554482d5245512d320000000f706172656e742d6772616e742d30310000002435623166326333642d346535662d346136622d386337642d3965306631613262336335620000000a64656d6f2d6167656e740000002b494345694979516c4a69636f4b536f724c4330754c7a41784d6a4d304e5459334f446b364f7a7739506a380000001c000000010000001468747470733a2f2f646174612e6578616d706c650000012c00000001000001240000000b646174612e6578706f727400000111000000060000000700000003616c6c0000002100000003677465000000110000000100000009726f775f636f756e74000000013500000021000000036c7465000000110000000100000009726f775f636f756e7400000001350000003800000006657175616c730000000c00000001000000046d6574610000001a7b2261223a6e756c6c2c2262223a5b312c322e352c2278225d7d0000002500000006657175616c730000000e0000000100000006666f726d61740000000522637376220000004f000000066f6e655f6f660000000f0000000100000007646174617365740000002e000000030000000b22637573746f6d657273220000000b22696e76656e746f72792200000008226f7264657273220000000a313830303030303030300000000a31383030303030333030000000046e756c6c",
+      "request_sha256": "PppvYmXTGvcTx7YFrWj0vxMcYwiHdp6VgP7bsJXVZak"
+    },
+    {
+      "child": {
+        "audiences": [
+          "https://docs.example"
+        ],
+        "expires_at": 1800000300,
+        "holder_thumbprint": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+        "not_before": 1800000000,
+        "operations": [
+          {
+            "name": "docs.read",
+            "selectors": [
+              {
+                "kind": "one_of",
+                "path": [
+                  "code"
+                ],
+                "values": [
+                  true,
+                  9,
+                  "b",
+                  null,
+                  10,
+                  2,
+                  "a",
+                  1.5,
+                  {
+                    "k": 1
+                  },
+                  [
+                    1
+                  ]
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "consumer_id": "demo-agent",
+      "invocation_id": "5b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c5c",
+      "name": "one-of-value-order",
+      "projection_hex": "0000000f42412d5245415554482d5245512d320000000f706172656e742d6772616e742d30310000002435623166326333642d346535662d346136622d386337642d3965306631613262336335630000000a64656d6f2d6167656e740000002b494345694979516c4a69636f4b536f724c4330754c7a41784d6a4d304e5459334f446b364f7a7739506a380000001c000000010000001468747470733a2f2f646f63732e6578616d706c650000008a000000010000008200000009646f63732e72656164000000710000000100000069000000066f6e655f6f660000000c0000000100000004636f64650000004b0000000a000000032261220000000322622200000003312e3500000002313000000001320000000139000000035b315d000000046e756c6c0000000474727565000000077b226b223a317d0000000a313830303030303030300000000a31383030303030333030000000046e756c6c",
+      "request_sha256": "NfILMbhLYVGtFk4_UDDOH4FJ5CIrP5WL2DOUo2st3tA"
+    },
+    {
+      "child": {
+        "audiences": [
+          "https://docs.example"
+        ],
+        "cumulative_policy": {
+          "distinct_path": [
+            "z",
+            "a",
+            "z"
+          ],
+          "max_count": 1,
+          "max_distinct": 2,
+          "window_seconds": 60
+        },
+        "expires_at": 1800000300,
+        "holder_thumbprint": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+        "not_before": 1800000000,
+        "operations": [
+          {
+            "name": "docs.read",
+            "selectors": [
+              {
+                "kind": "equals",
+                "path": [
+                  "z",
+                  "a",
+                  "z"
+                ],
+                "value": "v"
+              },
+              {
+                "kind": "lte",
+                "path": [
+                  "m",
+                  "row_count"
+                ],
+                "value": 7
+              }
+            ]
+          }
+        ]
+      },
+      "consumer_id": "demo-agent",
+      "invocation_id": "5b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c5d",
+      "name": "path-order",
+      "projection_hex": "0000000f42412d5245415554482d5245512d320000000f706172656e742d6772616e742d30310000002435623166326333642d346535662d346136622d386337642d3965306631613262336335640000000a64656d6f2d6167656e740000002b494345694979516c4a69636f4b536f724c4330754c7a41784d6a4d304e5459334f446b364f7a7739506a380000001c000000010000001468747470733a2f2f646f63732e6578616d706c6500000073000000010000006b00000009646f63732e726561640000005a0000000200000026000000036c74650000001600000002000000016d00000009726f775f636f756e7400000001370000002800000006657175616c730000001300000003000000017a0000000161000000017a000000032276220000000a313830303030303030300000000a31383030303030333030000000370000000236300000000131000000046e756c6c000000046e756c6c0000001300000003000000017a0000000161000000017a0000000132",
+      "request_sha256": "hpIotY0f1qMrngOZbEAEf0GhvxoxpooJAb6QdIYuR5Q"
+    }
+  ]
+}

@@ -38,12 +38,13 @@
     "prepack": "pnpm build",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.src.json",
     "test": "node --test --import tsx/esm test/*.test.ts",
+    "test:exhaustive": "node --test --import tsx/esm test/unicode-exhaustive.ts",
     "test:mutations": "node tools/mutation-proofs.mjs",
     "check:dist": "node tools/check-dist.mjs",
     "check:pack": "node tools/check-pack.mjs"
   },
   "dependencies": {
-    "@bounded-authority-protocol/verifier": "^0.5.0"
+    "@bounded-authority-protocol/verifier": "^0.7.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.4",

@@ -49,6 +49,9 @@ jobs:
       - name: Test (vectors, byte pins, properties, refusals, guard)
         run: pnpm test
 
+      - name: Every Unicode scalar value (exhaustive sweep, 1,112,064 values)
+        run: pnpm test:exhaustive
+
       - name: Mutation red-proofs (every rule breaks a named test)
         run: pnpm test:mutations
 

@@ -23,13 +23,19 @@ Unblock condition: verifier 0.6.0 is the browser-safe release. When it is publis
    assertions from `test/vectors.test.ts` inside a real browser engine.
 3. Add that run to CI and remove this item.
 
-## 2. Verifier canonical-JSON UTF-8 check (skipped test)
+## 2. Verifier canonical-JSON UTF-8 check (resolved in verifier 0.7.0)
 
-The verifier's canonical-JSON UTF-8 validation rejects some valid Unicode scalar values: U+0400
-through U+047F (Cyrillic), U+8000 through U+87FF, and plane 16 (U+100000 through U+10FFFF). An
-`equals` or `one_of` value containing one of them is refused with the closed error. The fix belongs
-in the verifier package, not here.
+Verifier 0.5.0 rejected some valid Unicode scalar values in its canonical-JSON UTF-8 validation:
+U+0400 through U+047F (Cyrillic), U+8000 through U+87FF, and plane 16 (U+100000 through U+10FFFF).
+An `equals` or `one_of` value containing one of them was refused with the closed error.
 
-`test/unicode.test.ts` holds a property over every Unicode scalar value. It is **skipped**, with
-the reason in the test, so that no failing test is committed. When the dependency carries the fix,
-remove the `skip` option and the test must pass.
+Verifier 0.7.0 carries the fix. Recorded results:
+
+- Before (verifier 0.5.0, test unskipped): the property failed after 11 runs with counterexample
+  `[1048576]`, which is U+100000.
+- After (verifier 0.7.0, lockfile integrity
+  `sha512-k2OovyQf8CoCtFZg9RNYSs7jszRVxHJLHCFLuhxYSAg5uwKFSzw48F5+4kGgvnUdQ0jZSnS08rXIo/0svpYtog==`):
+  the property in `test/unicode.test.ts` passes (2000 sampled scalar values), and
+  `pnpm test:exhaustive` (`test/unicode-exhaustive.ts`) visits all 1,112,064 Unicode scalar values
+  and passes with none refused. The sweep is its own script because it takes about 30 seconds and
+  `pnpm test:mutations` reruns the `test/*.test.ts` glob once per mutation.

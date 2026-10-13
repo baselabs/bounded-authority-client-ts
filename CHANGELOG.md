@@ -29,7 +29,8 @@ First slice of the TypeScript client SDK for the bounded authority service. Unpu
 - Packaging: `prepack` builds `dist/`, `pnpm check:pack` proves a clean `npm pack` contains the
   compiled code (and no source, tests, or maps), `pnpm check:dist` runs the vectors against
   `dist/`, and a tag-triggered release workflow stages the publish (a human approves; no token).
-- A property over every Unicode scalar value is committed skipped, pending a verifier fix
-  (`test/browser/README.md`).
-- Runtime dependency: `@bounded-authority-protocol/verifier` `^0.5.0` (one owner for canonical
+- A property over Unicode scalar values (`test/unicode.test.ts`) and an exhaustive sweep of all
+  1,112,064 scalar values (`pnpm test:exhaustive`) pass. Verifier 0.5.0 failed the property on
+  U+100000 (`test/browser/README.md`).
+- Runtime dependency: `@bounded-authority-protocol/verifier` `^0.7.0` (one owner for canonical
   JSON, SHA-256, and base64url).

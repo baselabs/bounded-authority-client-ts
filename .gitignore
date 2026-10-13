@@ -1,0 +1,5 @@
+node_modules/
+dist/
+
+# Kimosabe local process state (family convention: never tracked)
+.kimosabe/

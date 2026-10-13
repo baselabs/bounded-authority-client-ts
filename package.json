@@ -1,0 +1,54 @@
+{
+  "name": "@bounded-authority/client",
+  "version": "0.1.0",
+  "description": "TypeScript client SDK for the bounded authority service: the wire contract, contract cases, and vectors a client needs. This release carries the REQ-2 reauthorization request digest helper.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "docs",
+    "LICENSE",
+    "NOTICE",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/baselabs/bounded-authority-client-ts.git"
+  },
+  "homepage": "https://github.com/baselabs/bounded-authority-client-ts#readme",
+  "bugs": "https://github.com/baselabs/bounded-authority-client-ts/issues",
+  "publishConfig": {
+    "access": "public"
+  },
+  "packageManager": "pnpm@10.20.0",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "pnpm build",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.src.json",
+    "test": "node --test --import tsx/esm test/*.test.ts",
+    "test:mutations": "node tools/mutation-proofs.mjs",
+    "check:dist": "node tools/check-dist.mjs",
+    "check:pack": "node tools/check-pack.mjs"
+  },
+  "dependencies": {
+    "@bounded-authority-protocol/verifier": "^0.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "fast-check": "^4.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}

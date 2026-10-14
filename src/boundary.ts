@@ -231,18 +231,23 @@ function parseChildSelector(u: unknown): Selector {
   }
 }
 
-export function parseOperations(u: unknown): Operation[] {
-  const operations = nonEmptyArray(u, MAX_OPERATIONS).map((o): Operation => {
+/** Operations, with the selector parser of the side they belong to (child or parent). */
+function parseOperationsWith<S>(u: unknown, selector: (s: unknown) => S): { name: string; selectors: S[] }[] {
+  const operations = nonEmptyArray(u, MAX_OPERATIONS).map((o) => {
     const r = record(o);
     closedKeys(r, ["name", "selectors"]);
     return {
       name: identifier(read(r, "name"), MAX_OPERATION_NAME_BYTES),
-      selectors: nonEmptyArray(read(r, "selectors"), MAX_SELECTORS).map(parseSelector),
+      selectors: nonEmptyArray(read(r, "selectors"), MAX_SELECTORS).map(selector),
     };
   });
   // Operation names are unique.
   if (new Set(operations.map((o) => o.name)).size !== operations.length) fail("duplicate operation name");
   return operations;
+}
+
+export function parseOperations(u: unknown): Operation[] {
+  return parseOperationsWith(u, parseSelector);
 }
 
 // ---- cumulative policy ----------------------------------------------------------------------
@@ -344,16 +349,7 @@ function parseParentSelector(u: unknown): ParentSelector {
 }
 
 function parseParentOperations(u: unknown): ParentOperation[] {
-  const operations = nonEmptyArray(u, MAX_OPERATIONS).map((o): ParentOperation => {
-    const r = record(o);
-    closedKeys(r, ["name", "selectors"]);
-    return {
-      name: identifier(read(r, "name"), MAX_OPERATION_NAME_BYTES),
-      selectors: nonEmptyArray(read(r, "selectors"), MAX_SELECTORS).map(parseParentSelector),
-    };
-  });
-  if (new Set(operations.map((o) => o.name)).size !== operations.length) fail("duplicate operation name");
-  return operations;
+  return parseOperationsWith(u, parseParentSelector);
 }
 
 /**

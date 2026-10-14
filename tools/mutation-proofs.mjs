@@ -17,6 +17,8 @@ const at = (rel) => join(ROOT, rel);
 
 // Each mutation: id, the rule it breaks, file, the exact text to find (must occur once), its
 // replacement (or append: text appended to the file), and a substring of the test that must go red.
+// `also` lists further { file, find, replace } edits made at the same time, for a rule enforced in
+// more than one place: removing only one guard would leave the rule intact and prove nothing.
 const MUTATIONS = [
   // ---- framing -------------------------------------------------------------------------------
   { id: "u32-little-endian", rule: "U32 is big-endian", file: "src/bytes.ts",
@@ -117,7 +119,8 @@ const MUTATIONS = [
     find: 'integerBetween(read(r, "windowSeconds"), 1, MAX_WINDOW_SECONDS)', replace: 'integerBetween(read(r, "windowSeconds"), 0, MAX_WINDOW_SECONDS)',
     expect: "windowSeconds 0" },
   { id: "accept-long-path", rule: "paths have at most 32 components", file: "src/boundary.ts",
-    find: 'if (parts.length > MAX_PATH_COMPONENTS) fail("path too long");', replace: "", expect: "a 33-component selector path" },
+    find: 'if (parts.length > MAX_PATH_COMPONENTS) fail("path too long");', replace: "", expect: "a 33-component selector path",
+    also: [{ file: "src/boundary.ts", find: "  v2.parseSelector(tagged(s as unknown as JsonValue));\n", replace: "" }] },
 
   // ---- parent operations ---------------------------------------------------------------------
   { id: "parent-selector-unchecked", rule: "a parent selector is accepted only when the v2 profile accepts it", file: "src/boundary.ts",
@@ -141,7 +144,8 @@ const MUTATIONS = [
   { id: "accept-65-selectors", rule: "at most 64 selectors per operation", file: "src/boundary.ts",
     find: 'nonEmptyArray(read(r, "selectors"), MAX_SELECTORS)', replace: 'nonEmptyArray(read(r, "selectors"), Number.POSITIVE_INFINITY)', expect: "selectors per operation: at most 64" },
   { id: "accept-257-one-of-values", rule: "at most 256 one_of values, counted before dedup", file: "src/boundary.ts",
-    find: 'nonEmptyArray(read(r, "values"), MAX_ONE_OF_VALUES)', replace: 'nonEmptyArray(read(r, "values"), Number.POSITIVE_INFINITY)', expect: "one_of values: at most 256" },
+    find: 'nonEmptyArray(read(r, "values"), MAX_ONE_OF_VALUES)', replace: 'nonEmptyArray(read(r, "values"), Number.POSITIVE_INFINITY)', expect: "one_of values: at most 256",
+    also: [{ file: "src/boundary.ts", find: "  v2.parseSelector(tagged(s as unknown as JsonValue));\n", replace: "" }] },
   { id: "accept-long-path-component", rule: "a path component is at most 128 bytes (selector and policy paths)", file: "src/boundary.ts",
     find: "identifier(c, MAX_PATH_COMPONENT_BYTES)", replace: "identifier(c)", expect: "path: at most 32 components, each 1 to 128 bytes" },
 
@@ -209,27 +213,35 @@ try {
 
   const rows = [];
   for (const m of selected) {
-    if (!originals.has(m.file)) originals.set(m.file, readFileSync(at(m.file), "utf8"));
-    const original = originals.get(m.file);
-    let mutated;
-    if (m.append !== undefined) {
-      mutated = original + m.append;
-    } else {
-      const occurrences = original.split(m.find).length - 1;
-      if (occurrences !== 1) {
-        console.error(`MUTATION ${m.id}: find text occurs ${occurrences} times in ${m.file}, expected 1`);
-        exitCode = 1;
-        rows.push({ id: m.id, verdict: "BROKEN-MUTATION" });
+    const edits = [{ file: m.file, find: m.find, replace: m.replace, append: m.append }, ...(m.also ?? [])];
+    const mutatedFiles = new Map();
+    let broken = false;
+    for (const e of edits) {
+      if (!originals.has(e.file)) originals.set(e.file, readFileSync(at(e.file), "utf8"));
+      const current = mutatedFiles.get(e.file) ?? originals.get(e.file);
+      if (e.append !== undefined) {
+        mutatedFiles.set(e.file, current + e.append);
         continue;
       }
-      mutated = original.replace(m.find, () => m.replace);
+      const occurrences = current.split(e.find).length - 1;
+      if (occurrences !== 1) {
+        console.error(`MUTATION ${m.id}: find text occurs ${occurrences} times in ${e.file}, expected 1`);
+        broken = true;
+        break;
+      }
+      mutatedFiles.set(e.file, current.replace(e.find, () => e.replace));
     }
-    writeFileSync(at(m.file), mutated);
+    if (broken) {
+      exitCode = 1;
+      rows.push({ id: m.id, verdict: "BROKEN-MUTATION" });
+      continue;
+    }
+    for (const [file, text] of mutatedFiles) writeFileSync(at(file), text);
     let result;
     try {
       result = run(m.tests ?? ALL_TESTS);
     } finally {
-      writeFileSync(at(m.file), original);
+      for (const file of mutatedFiles.keys()) writeFileSync(at(file), originals.get(file));
     }
     const namedRed = result.failed.some((name) => name.includes(m.expect));
     const verdict = namedRed ? "RED (killed)" : result.failed.length > 0 ? "RED, BUT NOT THE NAMED TEST" : "SURVIVED";

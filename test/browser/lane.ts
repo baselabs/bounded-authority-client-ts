@@ -94,8 +94,11 @@ async function withPage<T>(name: string, run: (served: Served, page: import("pla
   try {
     return await run(served, await browser.newPage(), browser.version());
   } finally {
-    await browser.close();
-    served.server.close();
+    try {
+      await browser.close();
+    } finally {
+      served.server.close(); // even if closing the browser throws
+    }
   }
 }
 

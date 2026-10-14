@@ -43,6 +43,11 @@
     "access": "public"
   },
   "packageManager": "pnpm@10.20.0",
+  "pnpm": {
+    "ignoredBuiltDependencies": [
+      "esbuild"
+    ]
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepack": "pnpm build",

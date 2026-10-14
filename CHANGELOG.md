@@ -21,8 +21,11 @@ The first version intended for npm: everything in 0.1.0, plus the changes below.
   `test/ci-paths.test.ts` reads the workflow with a YAML parser (new dev dependency `yaml`) and
   fails unless every tracked file other than unread Markdown, and every file a check reads, runs
   CI under GitHub's documented filter rules.
-- The release workflow's verify job also runs `pnpm check:install`, and its comments describe
-  the release process without internal wording.
+- The release workflow's verify job also runs `pnpm check:install`, checks the tag against
+  `package.json`, packs the tarball it verified, and uploads it; the publish job stages exactly that
+  tarball (after checking its version against the tag), and a rerun for a version that is already
+  staged or published ends with a notice instead of a failure. The comments describe the release
+  process without internal wording, and note that npm stage needs the package to exist already.
 - **New: `parentContextFromGrant`** reads the parent context (`jti`, holder thumbprint,
   audiences, operations, `nbf`, `exp`) from the compact v2 parent grant, through the verifier
   package's `v2.decodeGrant`.
@@ -49,8 +52,10 @@ The first version intended for npm: everything in 0.1.0, plus the changes below.
   they collect the same ones; a JavaScript or TypeScript fence in any other language fails the
   docs test. `pnpm check:dist` also runs the guide's vectors sample from the clone root, as the
   guide now describes (after `pnpm build`).
-- The browser lane closes its local server when a browser fails to launch, so a missing browser
-  build fails the lane instead of hanging it.
+- The browser lane closes its local server when a browser fails to launch, or when closing the
+  browser throws, so the lane fails instead of hanging.
+- `pnpm install` no longer warns about esbuild's build script: `package.json` lists esbuild in
+  `pnpm.ignoredBuiltDependencies` (its script was already not run).
 - `docs/req2-projection.md`: the examples table now matches the vectors, and the epoch-second
   range is stated.
 - `package.json`: keywords, and a plainer description.

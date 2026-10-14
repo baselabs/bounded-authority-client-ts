@@ -1,8 +1,7 @@
 node_modules/
 dist/
 
-# Local tool state (never tracked)
-.kimosabe/
 # pnpm pack output (README install steps)
 *.tgz
+# The guide's vectors sample, saved in the clone root (docs/guides.md)
 vectors-check.ts

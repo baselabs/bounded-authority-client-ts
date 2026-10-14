@@ -90,12 +90,18 @@ Like [`childFromWire`](#childfromwire), from the JSON text of `body.child`.
   trailing bytes, a duplicate member name at any depth, an integer field (a bound, a timestamp, a
   policy member) spelled with a fraction or an exponent (`2500.0`, `1E2`, `-0.0`), a number with a
   leading zero, a lone surrogate, and a non-string argument. `-0` is the integer zero and is
-  accepted. Nothing else: there is no size or node limit on the text as a whole, so the two
-  functions accept and refuse the same children (`test/parity.test.ts` checks this over
-  generated children).
+  accepted.
+- **Text limits**, which bound the memory a hostile text can use: at most 4,194,304 characters
+  in all (checked before anything is read), at most 8,192 characters in any one string (the
+  longest string an accepted child can hold), and at most 128 levels of nesting.
+- **Numbers** follow the verifier package's `jsonDecode`: a number lexeme over 64 bytes, or beyond
+  -(2^53 - 1) to 2^53 - 1 by exact decimal comparison (`9007199254740991.4` included), is refused.
+  `childFromWire` sees only the number `JSON.parse` produced, so for such lexemes the text path is
+  the stricter one, and it is the one that matches the protocol's decoder.
 
-Inside `equals` and `one_of` values any valid number spelling is accepted: `2.0` and `2`
-canonicalize to the same bytes.
+Apart from the text-only rules above, the two functions accept and refuse the same children
+(`test/parity.test.ts` checks this over generated children). Inside `equals` and `one_of` values
+any valid number spelling is accepted: `2.0` and `2` canonicalize to the same bytes.
 
 ```ts
 import { childFromWire, childFromWireText } from "@bounded-authority/client";

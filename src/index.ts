@@ -81,7 +81,12 @@ export function childFromWire(wire: unknown): Result<RequestedChild> {
  * Every other limit is the one `childFromWire` applies, so the two refuse the same children.
  */
 export function childFromWireText(jsonText: string): Result<RequestedChild> {
-  return guarded(() => parseRequestedChild(wireChildToTyped(readJsonText(wellFormedText(jsonText)))));
+  return guarded(() => {
+    // The length is checked before anything else reads the text; every string the reader returns
+    // is checked for lone surrogates by the child parser.
+    if (typeof jsonText !== "string") fail("expected JSON text");
+    return parseRequestedChild(wireChildToTyped(readJsonText(jsonText)));
+  });
 }
 
 /**

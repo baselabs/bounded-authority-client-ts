@@ -176,7 +176,11 @@ integer field spelled with a fraction or an exponent (`2500.0`, `1E2`, `-0.0`). 
 documents that the text it came from met both rules. Inside `equals` and `one_of` values any
 valid number spelling is accepted: `2.0` and `2` canonicalize to the same bytes. Apart from these
 two text-only rules and invalid JSON, `childFromWireText` refuses exactly what `childFromWire`
-refuses for the parsed text.
+refuses for the parsed text, with three more text-only limits: the whole text is at most
+4,194,304 characters, a string at most 8,192 characters, and nesting at most 128 levels. Number
+lexemes follow the verifier's decoder (at most 64 bytes, magnitude within 2^53 - 1 by exact
+decimal comparison), which can refuse a lexeme whose rounded `JSON.parse` value `childFromWire`
+would accept.
 
 ## Refusals
 

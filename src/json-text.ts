@@ -1,40 +1,57 @@
 // The JSON text reader behind childFromWireText. It follows the RFC 8259 grammar and adds only
 // what the text alone can show: a duplicate member name is refused, and a number spelled with a
 // fraction or an exponent becomes a WireFloat (integer fields refuse it; JSON values accept the
-// number it denotes). It has no whole-document size or node limit: the child parser applies the
-// same limits to the result as it applies to an already-parsed child, so both entry points
-// refuse the same inputs. Nesting deeper than MAX_TEXT_DEPTH is refused here only to bound the
-// recursion; no child the parser accepts comes near it.
-import { fail } from "@bounded-authority-protocol/verifier";
+// number it denotes). Numbers follow the verifier's own decoder (jsonDecode): a lexeme it refuses
+// (over 64 bytes, or beyond +/-(2^53 - 1)) is refused here.
+//
+// Size bounds, so that hostile text cannot exhaust memory:
+// - MAX_TEXT_CHARS: the whole text, checked before anything is read. 4 MiB is 64 operations times
+//   the decoder's 64 KiB per JSON document; the largest child the limits allow at every count
+//   (64 audiences of 512 bytes, 64 operations of 64 selectors) fits with its values near 1 KB.
+// - MAX_STRING_CHARS: one string, 8,192 characters (the selector-value string limit; every other
+//   string a child holds is shorter, and a UTF-16 length never exceeds the UTF-8 byte length).
+// - MAX_TEXT_DEPTH: 128 levels of nesting, which bounds the recursion; no accepted child is half
+//   that deep.
+import { fail, jsonDecode } from "@bounded-authority-protocol/verifier";
 import { WireFloat } from "./boundary.js";
+import { utf8 } from "./bytes.js";
 
-const MAX_TEXT_DEPTH = 128;
+export const MAX_TEXT_CHARS = 4_194_304;
+export const MAX_STRING_CHARS = 8192;
+export const MAX_TEXT_DEPTH = 128;
+
 const NUMBER = /-?(?:0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?/y;
 const ESCAPES: Readonly<Record<string, string>> = { '"': '"', "\\": "\\", "/": "/", b: "\b", f: "\f", n: "\n", r: "\r", t: "\t" };
 
+const isSpace = (c: string | undefined): boolean => c === " " || c === "\t" || c === "\n" || c === "\r";
+
 export function readJsonText(text: string): unknown {
+  if (text.length > MAX_TEXT_CHARS) return fail("JSON text too long");
   let i = 0;
 
   const space = (): void => {
-    while (i < text.length && (text[i] === " " || text[i] === "\t" || text[i] === "\n" || text[i] === "\r")) i++;
+    while (i < text.length && isSpace(text[i])) i++;
   };
 
   const string = (): string => {
     i++; // the opening quote
     let out = "";
     for (;;) {
+      // Copy the run up to the next quote, backslash, or control character in one slice.
+      // The scan stops one character past the string limit, so a huge string is never walked.
+      const limit = Math.min(text.length, i + (MAX_STRING_CHARS - out.length) + 1);
+      let end = i;
+      while (end < limit && text[end] !== '"' && text[end] !== "\\" && text[end]! >= " ") end++;
+      if (out.length + (end - i) > MAX_STRING_CHARS) return fail("string too long");
+      out += text.slice(i, end);
+      i = end;
       if (i >= text.length) return fail("unterminated string");
       const c = text[i]!;
       if (c === '"') {
         i++;
         return out;
       }
-      if (c < " ") return fail("control character in string");
-      if (c !== "\\") {
-        out += c;
-        i++;
-        continue;
-      }
+      if (c !== "\\") return fail("control character in string");
       const e = text[i + 1];
       if (e === "u") {
         const hex = text.slice(i + 2, i + 6);
@@ -47,7 +64,20 @@ export function readJsonText(text: string): unknown {
       } else {
         return fail("bad escape");
       }
+      if (out.length > MAX_STRING_CHARS) return fail("string too long");
     }
+  };
+
+  const number = (): unknown => {
+    NUMBER.lastIndex = i;
+    const m = NUMBER.exec(text);
+    if (m === null) return fail("unexpected character");
+    i += m[0].length;
+    // The verifier's decoder decides each lexeme: its 64-byte and magnitude limits apply.
+    const t = jsonDecode(utf8(m[0]));
+    if (t.t === "int") return t.v;
+    if (t.t === "float") return new WireFloat(t.v);
+    return fail("not a number");
   };
 
   const value = (depth: number): unknown => {
@@ -115,15 +145,10 @@ export function readJsonText(text: string): unknown {
         return v;
       }
     }
-    NUMBER.lastIndex = i;
-    const m = NUMBER.exec(text);
-    if (m === null) return fail("unexpected character");
-    i += m[0].length;
-    const n = Number(m[0]);
-    return m[1] === undefined && m[2] === undefined ? n : new WireFloat(n);
+    return number();
   };
 
-  const result = value(0);
+  const result = value(1);
   space();
   if (i !== text.length) fail("trailing content after the JSON value");
   return result;

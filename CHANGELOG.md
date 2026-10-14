@@ -52,6 +52,12 @@ The first version intended for npm: everything in 0.1.0, plus the changes below.
   they collect the same ones; a JavaScript or TypeScript fence in any other language fails the
   docs test. `pnpm check:dist` also runs the guide's vectors sample from the clone root, as the
   guide now describes (after `pnpm build`).
+- **Fixed: hostile JSON text could exhaust memory.** The text reader copied strings one character
+  at a time (about 30 times the input size in memory; a 32 MB string ran a 512 MB heap out of
+  memory). It now copies runs, refuses a text over 4,194,304 characters before reading it, a
+  string over 8,192 characters, and nesting over 128 levels, and reads number lexemes with the
+  verifier's `jsonDecode` (64-byte and exact-magnitude limits). Tests cover each limit, the
+  string and whitespace grammar, and a property against `jsonDecode`; each has a mutation proof.
 - The browser lane closes its local server when a browser fails to launch, or when closing the
   browser throws, so the lane fails instead of hanging.
 - `pnpm install` no longer warns about esbuild's build script: `package.json` lists esbuild in

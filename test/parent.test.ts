@@ -10,7 +10,7 @@ import type { Tagged } from "@bounded-authority-protocol/verifier";
 import { materializeChild, parentContextFromGrant, reauthorizationRequestDigest } from "../src/index.js";
 import type { MaterializedChild, ParentContext, RequestedChild } from "../src/index.js";
 import { CHILD_THUMBPRINT, INVOCATION, PARENT_THUMBPRINT } from "./helpers.js";
-import { GRANT_BASE, craftedGrant, producedGrant, producedV1Grant, tag } from "./grants.js";
+import { GRANT_BASE, craftedGrant, producedGrant, producedGrantWith, producedV1Grant, rawPayloadGrant, tag } from "./grants.js";
 
 const parent = (selectors: unknown[]): ParentContext =>
   ({
@@ -170,3 +170,46 @@ function arr(items: Tagged[]): Tagged {
   return { t: "array", v: items };
 }
 
+
+// ---- float-tagged bounds and negative times ------------------------------------------------
+
+const rawPayload = (bound: string): string =>
+  `{"aud":["https://data.example"],"cnf":{"jkt":"${GRANT_BASE.holderThumbprint}"},"exp":${GRANT_BASE.expiresAt},` +
+  `"iat":${GRANT_BASE.issuedAt},"iss":"${GRANT_BASE.issuer}","jti":"${GRANT_BASE.grantId}","nbf":${GRANT_BASE.notBefore},` +
+  `"operations":[{"name":"data.export","selectors":[{"kind":"lte","path":["row_count"],"value":${bound}}]}],"v":2}`;
+
+for (const bound of ["10.0", "1e1"]) {
+  test(`parentContextFromGrant: a float-tagged whole-number bound (${bound}) keeps its float tag and is never inherited`, () => {
+    const r = parentContextFromGrant(rawPayloadGrant(rawPayload(bound)));
+    assert.equal(r.ok, true, "the grant is read");
+    if (!r.ok) return;
+    assert.deepEqual(r.value.operations[0]?.selectors[0], { kind: "lte", path: ["row_count"], value: { float: 10 } });
+    assert.deepEqual(materializeChild({ ...inheritingChild, audiences: null }, r.value), { ok: false });
+    assert.equal(materializeChild({ ...explicitChild, audiences: null }, r.value).ok, true);
+  });
+}
+
+test("parentContextFromGrant: an integer-tagged bound of the same value is inherited", () => {
+  const r = parentContextFromGrant(rawPayloadGrant(rawPayload("10")));
+  assert.equal(r.ok, true);
+  if (r.ok) assert.equal(materializeChild({ ...inheritingChild, audiences: null }, r.value).ok, true);
+});
+
+test("parent: a hand-written { float } bound is a float-tagged bound", () => {
+  assert.equal(materializeChild(explicitChild, parent([{ kind: "lte", path: ["n"], value: { float: 10 } }])).ok, true);
+  assert.deepEqual(materializeChild(inheritingChild, parent([{ kind: "lte", path: ["n"], value: { float: 10 } }])), { ok: false });
+  assert.deepEqual(materializeChild(explicitChild, parent([{ kind: "lte", path: ["n"], value: { float: 10, x: 1 } }])), { ok: false });
+});
+
+test("parentContextFromGrant: a grant with negative times is read, and inherited times may be negative", () => {
+  const compact = producedGrantWith({ issuedAt: -30, notBefore: -20, expiresAt: -10 }, [{ name: "docs.read", selectors: ["all"] }]);
+  const r = parentContextFromGrant(compact);
+  assert.equal(r.ok, true);
+  if (!r.ok) return;
+  assert.equal(r.value.notBefore, -20);
+  const child = materializeChild({ ...inheritingChild, audiences: null, operations: null }, r.value);
+  assert.equal(child.ok, true);
+  if (child.ok) assert.equal(child.value.notBefore, -20);
+  // An explicit child time is still a non-negative epoch.
+  assert.deepEqual(materializeChild({ ...inheritingChild, operations: null, audiences: null, notBefore: -1 }, r.value), { ok: false });
+});

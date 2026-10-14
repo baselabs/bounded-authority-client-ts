@@ -12,7 +12,7 @@ they serve are in the [guides](guides.md).
 | [`materializeChild`](#materializechild) | function | Fill a child's `null` members from the parent's exact values. |
 | [`reauthorizationRequestDigest`](#reauthorizationrequestdigest) | function | Compute the REQ-2 projection bytes and `requestSha256`. |
 | [`Result`](#result-and-the-closed-error) | type | The return type of every function. |
-| [Input and output types](#types) | types | `RequestedChild`, `MaterializedChild`, `ParentIdentity`, `ParentContext`, `ParentOperation`, `ParentSelector`, `ReauthorizationDigestInput`, `ReauthorizationDigest`, `Operation`, `Selector`, `CumulativePolicy`, `JsonValue`. |
+| [Input and output types](#types) | types | `RequestedChild`, `MaterializedChild`, `ParentIdentity`, `ParentContext`, `ParentOperation`, `ParentSelector`, `FloatBound`, `ReauthorizationDigestInput`, `ReauthorizationDigest`, `Operation`, `Selector`, `CumulativePolicy`, `JsonValue`. |
 
 Every sample on this page runs in `pnpm test` (`test/docs.test.ts`), and each `// prints:` comment
 is what the sample prints.
@@ -196,7 +196,10 @@ The parent's operations follow the v2 grant rules, not the child rules: a parent
 selector a v2 grant accepts (see [`ParentSelector`](#parentselector)). When the child inherits
 them (`operations: null`), each inherited selector must also be one a child could send: an `all`
 selector is inherited as a plain `{ kind: "all" }` (its inert members carry no authority), and a
-fractional `lte` or `gte` bound is refused, because REQ-2 bounds are integers.
+float-tagged `lte` or `gte` bound (fractional, or a whole number written `{ float: n }`) is
+refused, because REQ-2 bounds are integers. The parent's `notBefore` and `expiresAt` may be
+negative, as a v2 grant's `nbf` and `exp` may be, and are inherited as they are; a child's own
+explicit times are non-negative.
 
 This function does not check that the child is narrower than the parent. The service decides
 whether to issue the child.
@@ -315,6 +318,8 @@ The child as requested, in camelCase.
 ### `MaterializedChild`
 
 The child after inheritance: the same members as `RequestedChild`, none of them `null`.
+`notBefore` and `expiresAt` may be any integer within -(2^53 - 1) to 2^53 - 1, since an inherited
+parent time may be negative.
 
 ### `ParentIdentity`
 
@@ -328,8 +333,9 @@ The child after inheritance: the same members as `RequestedChild`, none of them 
 
 `ParentIdentity` plus the values a child inherits: `audiences: string[]`,
 `operations: ParentOperation[]`, `notBefore: number`, and `expiresAt: number`, with the same
-rules as in `RequestedChild` (never `null`) except for the selectors. `parentContextFromGrant`
-returns one.
+rules as in `RequestedChild` (never `null`), except for the selectors and the times: `notBefore`
+and `expiresAt` are any integers within -(2^53 - 1) to 2^53 - 1. `parentContextFromGrant` returns
+one, with two more members (see [`parentContextFromGrant`](#parentcontextfromgrant)).
 
 ### `ParentOperation`
 
@@ -338,13 +344,14 @@ count, and uniqueness rules as [`Operation`](#operation).
 
 ### `ParentSelector`
 
-Every [`Selector`](#selector), plus the two selector shapes a v2 grant accepts and a child does not
+Every [`Selector`](#selector), plus the selector shapes a v2 grant accepts and a child does not
 send:
 
 | Shape | Meaning |
 |---|---|
 | `{ kind: "all", path, value }` or `{ kind: "all", path, values }` | An `all` selector with inert members: any JSON values, which carry no authority. |
-| `{ kind: "lte" \| "gte", path, value }` with a fractional `value` | A numeric bound, integral or not, within -(2^53 - 1) to 2^53 - 1. |
+| `{ kind: "lte" \| "gte", path, value }` with a fractional `value` | A float-tagged numeric bound within -(2^53 - 1) to 2^53 - 1. |
+| `{ kind: "lte" \| "gte", path, value: { float: n } }` (type `FloatBound`) | A float-tagged bound whose value is a whole number, such as `10.0` or `1e1` in the grant. A plain number cannot keep that tag (`10.0` is `10` in JavaScript), so `parentContextFromGrant` writes it this way. |
 
 The verifier package's `v2.parseSelector` decides which parent selectors are accepted, so a parent
 selector is accepted exactly when a v2 grant may carry it.

@@ -68,5 +68,27 @@ export function grantOperations(compact: Uint8Array): unknown {
   const payload = jsonDecode(base64urlDecode(new TextEncoder().encode(segments[1] ?? "")));
   if (payload.t !== "object") return fail("grant payload is not an object");
   const operations = payload.v.get("operations");
-  return operations === undefined ? fail("grant has no operations") : plainJson(operations);
+  if (operations === undefined || operations.t !== "array") return fail("grant has no operations");
+  return operations.v.map((op) => {
+    if (op.t !== "object") return plainJson(op);
+    const selectors = op.v.get("selectors");
+    return {
+      ...(plainJson(op) as Record<string, unknown>),
+      ...(selectors?.t === "array" ? { selectors: selectors.v.map(plainSelector) } : {}),
+    };
+  });
+}
+
+/**
+ * A selector as a plain value. A float-tagged whole-number range bound (`10.0`, `1e1`) becomes
+ * `{ float: n }`, because the number alone would read as an integer bound.
+ */
+function plainSelector(s: Tagged): unknown {
+  const plain = plainJson(s);
+  if (s.t !== "object") return plain;
+  const kind = s.v.get("kind");
+  const value = s.v.get("value");
+  const range = kind?.t === "string" && ["lte", "gte"].includes(utf8Str(kind.v));
+  if (range && value?.t === "float" && Number.isInteger(value.v)) return { ...(plain as Record<string, unknown>), value: { float: value.v } };
+  return plain;
 }

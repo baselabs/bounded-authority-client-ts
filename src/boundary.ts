@@ -11,6 +11,7 @@ import type {
   Operation,
   ParentContext,
   ParentIdentity,
+  FloatBound,
   ParentOperation,
   ParentSelector,
   RequestedChild,
@@ -140,8 +141,17 @@ export function parseInvocationId(u: unknown): string {
   return s;
 }
 
+/** An epoch the child sends itself: 0 through 2^53 - 1. */
 function parseEpoch(u: unknown): number {
   return integerBetween(u, 0, MAX_INTEGER);
+}
+
+/**
+ * An epoch of the parent, or of a child after inheritance: any integer within +/-(2^53 - 1), as a
+ * v2 grant's `nbf` and `exp` may be. A negative parent time is inherited as it is.
+ */
+function parseGrantEpoch(u: unknown): number {
+  return integerBetween(u, -MAX_INTEGER, MAX_INTEGER);
 }
 
 function parseAudiences(u: unknown): string[] {
@@ -309,8 +319,8 @@ export function parseMaterializedChild(u: unknown): MaterializedChild {
     holderThumbprint: parseThumbprint(read(r, "holderThumbprint")),
     audiences: parseAudiences(read(r, "audiences")),
     operations: parseOperations(read(r, "operations")),
-    notBefore: parseEpoch(read(r, "notBefore")),
-    expiresAt: parseEpoch(read(r, "expiresAt")),
+    notBefore: parseGrantEpoch(read(r, "notBefore")),
+    expiresAt: parseGrantEpoch(read(r, "expiresAt")),
     ...optionalPolicy(r),
   };
 }
@@ -339,13 +349,28 @@ export function parseParentIdentity(u: unknown): ParentIdentity {
  * A parent selector is accepted exactly when the v2 wire profile accepts it (spec/bap-v2.md §4):
  * the verifier package's own v2 selector parser decides, on the selector's tagged JSON form.
  */
+/** `{ float: n }`: a float-tagged range bound (see FloatBound), or undefined for anything else. */
+function floatBound(u: unknown): FloatBound | undefined {
+  if (typeof u !== "object" || u === null || Array.isArray(u)) return undefined;
+  const r = record(u);
+  closedKeys(r, ["float"]);
+  const n = read(r, "float");
+  if (typeof n !== "number" || !Number.isFinite(n)) return fail("float bound is not a finite number");
+  return { float: n === 0 ? 0 : n };
+}
+
 function parseParentSelector(u: unknown): ParentSelector {
   const r = record(u);
   closedKeys(r, ["kind"], ["path", "value", "values"]);
   const copy: Record<string, JsonValue> = {};
   for (const k of ["kind", "path", "value", "values"]) if (has(r, k)) copy[k] = parseJson(read(r, k), 0);
-  v2.parseSelector(tagged(copy));
-  return copy as ParentSelector;
+  const range = copy["kind"] === "lte" || copy["kind"] === "gte";
+  const bound = range && has(r, "value") ? floatBound(read(r, "value")) : undefined;
+  const t = tagged(copy);
+  v2.parseSelector(
+    bound !== undefined && t.t === "object" ? { t: "object", v: new Map([...t.v, ["value", { t: "float", v: bound.float }]]) } : t,
+  );
+  return (bound === undefined ? copy : { ...copy, value: bound }) as ParentSelector;
 }
 
 function parseParentOperations(u: unknown): ParentOperation[] {
@@ -370,8 +395,8 @@ export function parseParentContext(u: unknown): ParentContext {
     ...parseIdentityFields(r),
     audiences: parseAudiences(read(r, "audiences")),
     operations: parseParentOperations(read(r, "operations")),
-    notBefore: parseEpoch(read(r, "notBefore")),
-    expiresAt: parseEpoch(read(r, "expiresAt")),
+    notBefore: parseGrantEpoch(read(r, "notBefore")),
+    expiresAt: parseGrantEpoch(read(r, "expiresAt")),
   };
 }
 

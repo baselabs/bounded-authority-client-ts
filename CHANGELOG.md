@@ -58,6 +58,13 @@ The first version intended for npm: everything in 0.1.0, plus the changes below.
   string over 8,192 characters, and nesting over 128 levels, and reads number lexemes with the
   verifier's `jsonDecode` (64-byte and exact-magnitude limits). Tests cover each limit, the
   string and whitespace grammar, and a property against `jsonDecode`; each has a mutation proof.
+- **Fixed: a float-tagged whole-number parent bound read as an integer.** A grant bound written
+  `10.0` or `1e1` is float-tagged, but as a JavaScript number it became `10` and could be
+  inherited. `parentContextFromGrant` now writes it as `{ float: 10 }` (new type `FloatBound`),
+  and inheriting any float-tagged bound is refused (REQ-2 bounds are integers).
+- **Fixed: `parentContextFromGrant` refused v2 grants with negative times.** A parent's
+  `notBefore` and `expiresAt`, and a child's inherited times, may be any integer within
+  2^53 - 1; a child's own explicit times stay non-negative.
 - The browser lane closes its local server when a browser fails to launch, or when closing the
   browser throws, so the lane fails instead of hanging.
 - `pnpm install` no longer warns about esbuild's build script: `package.json` lists esbuild in

@@ -38,6 +38,7 @@ export type {
   Operation,
   ParentContext,
   ParentIdentity,
+  FloatBound,
   ParentOperation,
   ParentSelector,
   ReauthorizationDigest,

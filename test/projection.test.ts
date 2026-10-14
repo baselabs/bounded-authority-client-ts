@@ -325,3 +325,11 @@ test("every top-level field is bound: changing any one changes the digest", () =
   for (const input of changed) assert.notEqual(toHex(project(input)), toHex(baseline));
   assert.notEqual(CHILD_THUMBPRINT, PARENT_THUMBPRINT);
 });
+
+test("integers use ASCII decimal: an inherited negative time is framed with its minus sign", () => {
+  const r = reauthorizationRequestDigest(withChild({ notBefore: -20, expiresAt: -10 }));
+  assert.equal(r.ok, true);
+  if (!r.ok) return;
+  const hex = toHex(r.value.projection);
+  assert.ok(hex.includes(toHex(cat(frame("-20"), frame("-10")))), "the frames hold -20 and -10");
+});

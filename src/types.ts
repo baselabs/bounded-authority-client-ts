@@ -77,8 +77,18 @@ export interface ParentIdentity {
  */
 export type ParentSelector =
   | Selector
+  | { readonly kind: "lte" | "gte"; readonly path: readonly string[]; readonly value: FloatBound }
   | { readonly kind: "all"; readonly path: JsonValue; readonly value: JsonValue }
   | { readonly kind: "all"; readonly path: JsonValue; readonly values: JsonValue };
+
+/**
+ * A float-tagged range bound whose value is a whole number, such as `10.0` or `1e1` in the grant.
+ * A plain JavaScript number cannot keep that tag (10.0 is 10), so the parent context writes it as
+ * `{ float: 10 }`. A child never inherits a float-tagged bound: REQ-2 bounds are integers.
+ */
+export interface FloatBound {
+  readonly float: number;
+}
 
 /** An operation of a v2 parent grant. */
 export interface ParentOperation {

@@ -130,6 +130,13 @@ const MUTATIONS = [
   { id: "inherit-skips-child-rules", rule: "an inherited selector must satisfy the child rules", file: "src/boundary.ts",
     find: "  return parseOperations(\n    operations.map(", replace: "  return (\n    operations.map(", expect: "parent: an inherited fractional bound is refused" },
 
+  { id: "float-bound-retagged", rule: "a float-tagged whole-number bound keeps its tag", file: "src/wire.ts",
+    find: '  if (range && value?.t === "float" && Number.isInteger(value.v)) return { ...(plain as Record<string, unknown>), value: { float: value.v } };\n',
+    replace: "", expect: "keeps its float tag and is never inherited" },
+  { id: "grant-epoch-nonnegative", rule: "parent and inherited times are any integers within 2^53 - 1", file: "src/boundary.ts",
+    find: "return integerBetween(u, -MAX_INTEGER, MAX_INTEGER);", replace: "return integerBetween(u, 0, MAX_INTEGER);",
+    expect: "a grant with negative times is read" },
+
   // ---- size and count limits -----------------------------------------------------------------
   { id: "accept-65-audiences", rule: "at most 64 audiences", file: "src/boundary.ts",
     find: "nonEmptyArray(u, MAX_AUDIENCES)", replace: "nonEmptyArray(u, Number.POSITIVE_INFINITY)", expect: "audiences: at most 64" },

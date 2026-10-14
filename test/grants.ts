@@ -72,3 +72,17 @@ export function craftedGrant(operations: Tagged): string {
 }
 
 export const tag = { str, int: (v: number): Tagged => ({ t: "int", v }), float: (v: number): Tagged => ({ t: "float", v }) };
+
+/** A v2 grant whose payload is the given JSON text exactly (not canonicalized), signed by hand. */
+export function rawPayloadGrant(payloadJson: string): string {
+  const base = v2.grantSigningInput({ ...GRANT_BASE, operations: [{ name: "x", selectors: ["all"] }] });
+  if (!base.ok) throw new Error("grantSigningInput refused the base grant");
+  return signCompact(base.value.protectedSegment, base64urlEncode(enc.encode(payloadJson)));
+}
+
+/** A v2 grant from the producer with other claim values (times, for example). */
+export function producedGrantWith(claims: Partial<typeof GRANT_BASE>, operations: v2.OperationInput[]): string {
+  const input = v2.grantSigningInput({ ...GRANT_BASE, ...claims, operations });
+  if (!input.ok) throw new Error("grantSigningInput refused the test grant");
+  return signCompact(input.value.protectedSegment, input.value.payloadSegment);
+}

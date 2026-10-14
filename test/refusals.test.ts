@@ -122,7 +122,11 @@ digestRefuses("undefined as an equals value", (i) => { i.child.operations[0].sel
 digestRefuses("a Map as an equals value", (i) => { i.child.operations[0].selectors[0].value = new Map(); });
 digestRefuses("a NaN equals value", (i) => { i.child.operations[0].selectors[0].value = Number.NaN; });
 digestRefuses("a cyclic equals value", (i) => { const o: Loose = {}; o.self = o; i.child.operations[0].selectors[0].value = o; });
-digestRefuses("a negative notBefore", (i) => { i.child.notBefore = -1; });
+// A materialized child may carry a negative time inherited from a v2 parent (nbf and exp are any
+// integers within 2^53 - 1), and the service encodes it as signed decimal; only the magnitude bound
+// applies here. A child's own explicit time is non-negative (materializeChild refuses -1; see
+// test/parent.test.ts).
+digestRefuses("a notBefore below -(2^53-1)", (i) => { i.child.notBefore = -(2 ** 53); });
 digestRefuses("a fractional expiresAt", (i) => { i.child.expiresAt = 1800000300.5; });
 digestRefuses("an expiresAt beyond 2^53-1", (i) => { i.child.expiresAt = 2 ** 53; });
 digestRefuses("a string expiresAt", (i) => { i.child.expiresAt = "1800000300"; });

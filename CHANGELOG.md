@@ -22,7 +22,9 @@ First slice of the TypeScript client SDK for the bounded authority service. Unpu
   order-insensitivity, and dedup idempotence; `pnpm test:mutations` breaks each rule in `src/`
   and proves a named test goes red.
 - `src/` imports nothing from `node:*` and never names `Buffer` (a guard test enforces this).
-  A real-browser run of the vectors is pending verifier 0.6.0 (`test/browser/README.md`).
+  The 17 vectors also run in real Chromium, Firefox and WebKit through Playwright under a strict
+  CSP, with the client bundled by esbuild onto the verifier's portable backend (`pnpm test:browser`,
+  `test/browser/README.md`).
 - The service's size and count limits are mirrored at the boundary (audiences, operations,
   selectors, `one_of` values, path components); every failure, including a throwing Proxy in the
   input, becomes the closed error.

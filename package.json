@@ -36,8 +36,9 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepack": "pnpm build",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.src.json",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.src.json && tsc -p browser/tsconfig.json",
     "test": "node --test --import tsx/esm test/*.test.ts",
+    "test:browser": "node --test --import tsx/esm test/browser/lane.ts",
     "test:exhaustive": "node --test --import tsx/esm test/unicode-exhaustive.ts",
     "test:mutations": "node tools/mutation-proofs.mjs",
     "check:dist": "node tools/check-dist.mjs",
@@ -48,7 +49,9 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.4",
+    "esbuild": "^0.28.2",
     "fast-check": "^4.0.0",
+    "playwright": "^1.64.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   }

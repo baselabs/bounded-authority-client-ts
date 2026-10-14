@@ -1,27 +1,42 @@
-# Pending: real-browser run of the vectors, and one verifier fix
+# Browser lane and Unicode evidence
 
-Two items wait on the verifier package. Neither is faked, and nothing in this repository claims
-either passed.
+## 1. Real-browser run of the vectors
 
-## 1. Real-browser run of the vectors (blocked on verifier 0.6.0)
+The REQ-2 vectors in `test/vectors/reauthorization-req2.json` are asserted in real engines
+(Chromium, Firefox, WebKit) through Playwright. No jsdom, no mocks, no aliases, no shims.
 
-The REQ-2 vectors in `test/vectors/reauthorization-req2.json` must also be asserted in a real
-browser (a real engine, not jsdom and not a shim).
+How it runs (`pnpm test:browser`, `test/browser/lane.ts`):
 
-This package computes canonical JSON and the SHA-256 digest through
-`@bounded-authority-protocol/verifier`. Verifier 0.5.0 imports `node:crypto` at its package
-root, so a browser bundle of this package cannot load the verifier without substituting
-`node:crypto`. Substituting it would test the substitute, not the shipped code.
+- esbuild bundles `browser/main.ts` (which imports `src/`) for the browser. The verifier's `#crypto`
+  import resolves by its package `imports` conditions to the portable backend, the way any browser
+  bundler resolves it. The page asserts `BACKEND_ID === "portable"` and `isSecureContext` before it
+  runs a vector, and reports that no Node global (`Buffer`, `process`, `require`, `global`) exists.
+- A `node:http` server on `127.0.0.1:0` serves the page, the bundle, and the vectors file (SHA-256
+  pinned at load) with a strict CSP on every response:
+  `default-src 'none'; script-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'`.
+  Every `securitypolicyviolation` is recorded and must be empty.
+- The page runs every vector through `childFromWire`, `materializeChild`, and
+  `reauthorizationRequestDigest`, compares projection hex and `request_sha256` to the expected
+  values, and returns what it computed. The test compares those values again, outside the page,
+  against the pinned file read from disk.
+- `BAP_BROWSERS` selects engines (default `chromium`; CI runs all three on Linux, one job each).
+  `BAP_CHROMIUM_EXECUTABLE` points Playwright at a locally installed Chromium build. Linux WebKit is
+  evidence for this pure-JS code only, never for Safari.
 
-`src/` itself imports nothing from `node:*` and never names `Buffer` (enforced by
-`test/guard.test.ts`), so the blocker is entirely upstream.
+Red-proofs, run on every engine as part of the lane:
 
-Unblock condition: verifier 0.6.0 is the browser-safe release. When it is published:
+- A page that expects the wrong backend (`?expect=node`) reports the mismatch, computes nothing, and
+  never fetches the vectors file.
+- A vectors file served with one altered `request_sha256` and one altered `projection_hex` is
+  reported as exactly those two failures (the computed values stay the true ones).
+- `eval` is blocked by the served CSP and the violation listener records it, which shows the CSP is
+  enforced and the listener works.
 
-1. Move the dependency range to `^0.6.0` and refresh the lockfile.
-2. Add a browser harness here that bundles `src/` with no aliases or shims and runs the vector
-   assertions from `test/vectors.test.ts` inside a real browser engine.
-3. Add that run to CI and remove this item.
+Outside the lane, a mutation of `src/bytes.ts` (U32 written little-endian) turns the main lane test
+red on all three engines.
+
+The lane bundles `src/`; `pnpm check:dist` separately runs the vectors against the compiled `dist/`
+in Node.
 
 ## 2. Verifier canonical-JSON UTF-8 check (resolved in verifier 0.7.0)
 

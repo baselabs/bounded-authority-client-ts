@@ -103,8 +103,11 @@ binding the proof producer applies to the cast arguments.
 - `pnpm test:mutations` breaks each of those rules (and the refusals) in `src/`, one at a time,
   and requires a named test to fail. A survivor fails the script.
 - `src/` has no `node:` import and no `Buffer` identifier (`test/guard.test.ts`).
-- Not yet run: a real-browser run of the vectors, pending the verifier's browser-safe release
+- The 17 vectors run in real Chromium, Firefox and WebKit (Playwright, strict CSP, the client bundled
+  by esbuild onto the verifier's portable backend; projection hex and `request_sha256` exact). The
+  lane has wrong-backend and tampered-expectation red-proofs
   (see [`test/browser/README.md`](test/browser/README.md)).
+- A fast-check property and an exhaustive sweep cover all 1,112,064 Unicode scalar values.
 
 ## Development
 
@@ -113,6 +116,9 @@ pnpm install
 pnpm typecheck
 pnpm test
 pnpm test:mutations
+pnpm test:exhaustive   # every Unicode scalar value, about 30 seconds
+pnpm test:browser      # needs Playwright browsers: pnpm exec playwright install chromium firefox webkit
 ```
+`BAP_BROWSERS=chromium,firefox,webkit` selects engines for `pnpm test:browser` (default `chromium`).
 
 License: Apache-2.0 (see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE)).

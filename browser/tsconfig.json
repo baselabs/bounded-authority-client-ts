@@ -1,0 +1,15 @@
+{
+  // Typecheck of the browser lane page (part of pnpm typecheck): DOM code bundled by esbuild, with no
+  // ambient Node types, so a Node-only reference in the page or in src/ is a diagnostic.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "..",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "types": [],
+    "isolatedModules": true
+  },
+  "include": ["./*.ts", "../src/**/*.ts"]
+}

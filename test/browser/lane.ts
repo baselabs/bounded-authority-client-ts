@@ -85,7 +85,12 @@ async function withPage<T>(name: string, run: (served: Served, page: import("pla
   const engine = ENGINES[name]!;
   const served = await serve();
   const executablePath = name === "chromium" ? process.env.BAP_CHROMIUM_EXECUTABLE : undefined;
-  const browser = await engine.launch(executablePath ? { executablePath } : {});
+  // A launch failure (a missing browser build, say) must not leave the server listening: an open
+  // server keeps the process alive, so the lane would hang instead of failing.
+  const browser = await engine.launch(executablePath ? { executablePath } : {}).catch((e: unknown) => {
+    served.server.close();
+    throw e;
+  });
   try {
     return await run(served, await browser.newPage(), browser.version());
   } finally {

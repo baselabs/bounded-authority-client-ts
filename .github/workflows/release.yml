@@ -1,9 +1,7 @@
-# npm releases of @bounded-authority/client. Publishing is bound to THIS
-# repository's workflow identity (GitHub Actions OIDC, no long-lived token) and
-# runs in TWO STAGES per the npm trusted-publisher configuration: the workflow
-# STAGES the artifact (`npm stage publish`, provenance attached), and a human
-# approves the staged release on npmjs.com under the org's 2FA — CI can never
-# make a version live alone.
+# npm releases of @bounded-authority/client, started by pushing a v* tag. Publishing uses
+# npm trusted publishing (GitHub Actions OIDC, no long-lived token) in two stages: this
+# workflow stages the package with provenance (`npm stage publish`), and a maintainer
+# approves the staged release on npmjs.com. The workflow cannot make a version live alone.
 name: Release
 
 on:
@@ -35,8 +33,8 @@ jobs:
       - name: Install (frozen lockfile)
         run: pnpm install --frozen-lockfile
 
-      - name: Full verification gate (typecheck, tests, mutations, package contents, vectors against dist/)
-        run: pnpm typecheck && pnpm test && pnpm test:exhaustive && pnpm test:mutations && pnpm check:pack && pnpm check:dist
+      - name: Full verification gate (typecheck, tests, mutations, package contents, vectors against dist/, docs against the installed tarball)
+        run: pnpm typecheck && pnpm test && pnpm test:exhaustive && pnpm test:mutations && pnpm check:pack && pnpm check:dist && pnpm check:install
 
       - name: Install browsers
         run: pnpm exec playwright install --with-deps chromium firefox webkit
@@ -84,10 +82,9 @@ jobs:
             echo "published=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # The family routine is "a v* tag on a version-bump commit" — enforce the
-      # match instead of trusting it: the idempotency check above keys on the
-      # TAG, while npm stage publish below publishes package.json's version, so
-      # a tag/manifest mismatch would silently stage the wrong version.
+      # A release is a v* tag on the commit that sets package.json's version. The
+      # idempotency check above keys on the tag, while npm stage publish below publishes
+      # package.json's version, so a mismatch would stage the wrong version: refuse it.
       - name: Tag must match package.json version
         run: |
           node --input-type=module -e "const tag = process.env.GITHUB_REF_NAME.replace(/^v/, ''); const pkg = (await import('./package.json', { with: { type: 'json' } })).default.version; if (pkg !== tag) { console.error(\`tag v\${tag} does not match package.json version \${pkg}\`); process.exit(1); } console.log(\`tag v\${tag} matches package.json \${pkg}\`);"

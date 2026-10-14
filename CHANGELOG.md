@@ -20,6 +20,8 @@ package's behavior.
   file a check reads (`README.md`, `CHANGELOG.md`, `docs/`, `test/browser/README.md`, `LICENSE`)
   now runs CI. The checks take their file lists from `tools/checked-files.mjs`, and
   `test/ci-paths.test.ts` fails if the filter excludes any of those files.
+- The release workflow's verify job also runs `pnpm check:install`, and its comments describe
+  the release process without internal wording.
 - The browser lane closes its local server when a browser fails to launch, so a missing browser
   build fails the lane instead of hanging it.
 - `docs/req2-projection.md`: the examples table now matches the vectors, and the epoch-second

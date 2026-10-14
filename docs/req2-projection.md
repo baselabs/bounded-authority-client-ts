@@ -16,8 +16,9 @@ Client-facing wire contract for the digest that `reauthorizationRequestDigest` c
 ## What the digest is for
 
 A reauthorization request asks the service to issue a child grant under a parent grant. The
-holder (for example a wallet app) signs consent to the child. The consent covers the child's
-holder, audiences, operations, validity window, and optional cumulative policy. The digest is how
+holder (for example an assistant app that delegates a narrower task to another agent) signs
+consent to the child. The consent covers the child's holder, audiences, operations, validity
+window, and optional cumulative policy. The digest is how
 that consent binds to those fields: the client computes the projection, hashes it, and puts the
 result in `cast_arguments.request_sha256` of the holder's v2 proof for operation
 `authority.grants.reauthorize`. The service recomputes the same projection from the request body,

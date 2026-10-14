@@ -65,6 +65,11 @@ The first version intended for npm: everything in 0.1.0, plus the changes below.
 - **Fixed: `parentContextFromGrant` refused v2 grants with negative times.** A parent's
   `notBefore` and `expiresAt`, and a child's inherited times, may be any integer within
   2^53 - 1; a child's own explicit times stay non-negative.
+- `parentContextFromGrant` now returns a `ParentGrantContext`: the parent context plus the
+  grant's `issuer` and `verification: "not_evaluated"`, so its decode-only nature is hard to miss.
+  The guide verifies the grant with the verifier's `v2.verifyGrant` (a demo issuer key, fixed
+  expected values) before reading it, and a test runs that flow with an altered signature and a
+  swapped payload; both stop before any digest.
 - The browser lane closes its local server when a browser fails to launch, or when closing the
   browser throws, so the lane fails instead of hanging.
 - `pnpm install` no longer warns about esbuild's build script: `package.json` lists esbuild in

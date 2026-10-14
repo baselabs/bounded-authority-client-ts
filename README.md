@@ -16,9 +16,9 @@ holder's signed consent to a child grant delegated from a parent grant.
   sorting by raw UTF-8 bytes, deduplication, and canonical JSON. One wrong byte and the digest no
   longer matches the one the service recomputes. This package matches seventeen vectors whose
   expected bytes were computed independently of it.
-- **It reads the parent grant for you.** `parentContextFromGrant` takes the compact v2 grant
-  the holder already has and returns the identity, audiences, operations, and validity window a
-  child inherits.
+- **It reads the parent grant for you.** After you verify the grant with the verifier's
+  `v2.verifyGrant`, `parentContextFromGrant` returns the identity, audiences, operations, and
+  validity window a child inherits from it.
 - **Bad input never gets far.** Every input is checked at the boundary against the same limits
   the service applies. Any failure becomes the single closed result `{ ok: false }`. No function
   throws, not even for a hostile Proxy.

@@ -12,7 +12,7 @@ they serve are in the [guides](guides.md).
 | [`materializeChild`](#materializechild) | function | Fill a child's `null` members from the parent's exact values. |
 | [`reauthorizationRequestDigest`](#reauthorizationrequestdigest) | function | Compute the REQ-2 projection bytes and `requestSha256`. |
 | [`Result`](#result-and-the-closed-error) | type | The return type of every function. |
-| [Input and output types](#types) | types | `RequestedChild`, `MaterializedChild`, `ParentIdentity`, `ParentContext`, `ParentOperation`, `ParentSelector`, `FloatBound`, `ReauthorizationDigestInput`, `ReauthorizationDigest`, `Operation`, `Selector`, `CumulativePolicy`, `JsonValue`. |
+| [Input and output types](#types) | types | `RequestedChild`, `MaterializedChild`, `ParentIdentity`, `ParentContext`, `ParentGrantContext`, `ParentOperation`, `ParentSelector`, `FloatBound`, `ReauthorizationDigestInput`, `ReauthorizationDigest`, `Operation`, `Selector`, `CumulativePolicy`, `JsonValue`. |
 
 Every sample on this page runs in `pnpm test` (`test/docs.test.ts`), and each `// prints:` comment
 is what the sample prints.
@@ -133,21 +133,25 @@ console.log(childFromWire(JSON.parse(fraction)).ok); // prints: true
 ## `parentContextFromGrant`
 
 ```text
-function parentContextFromGrant(grantCompact: string): Result<ParentContext>
+function parentContextFromGrant(grantCompact: string): Result<ParentGrantContext>
 ```
 
 Reads the [`ParentContext`](#parentcontext) from the compact v2 grant the holder already has: its
 `jti`, `cnf.jkt` (as unpadded base64url), `aud`, `operations`, `nbf`, and `exp` claims, with
-`contractMajor: 2`.
+`contractMajor: 2`, plus two members that make the decode-only nature hard to miss: `issuer`
+(the grant's `iss` claim, as the grant states it) and `verification: "not_evaluated"`.
 
 - **`grantCompact`**: the parent grant, as the compact JWS string the service issued.
-- **Returns** `{ ok: true, value: ParentContext }`. The operations keep every selector the grant
-  carries, including the shapes only a parent may have (see [`ParentSelector`](#parentselector)).
+- **Returns** `{ ok: true, value: ParentGrantContext }`. The operations keep every selector the
+  grant carries, including the shapes only a parent may have (see
+  [`ParentSelector`](#parentselector)). `materializeChild` accepts the result as it is (and refuses
+  a `verification` other than `"not_evaluated"`).
 - **Refuses** anything the verifier package's `v2.decodeGrant` refuses (a v1 or v3 grant, a
   malformed compact, an unknown claim), and a non-string argument.
 
-The grant's structure is checked, its signature is not: when you need to know the grant came from
-your issuer, verify it with the verifier package's `v2.verifyGrant` first.
+The grant's structure is checked, its signature is not. Verify the grant with the verifier
+package's `v2.verifyGrant` first, against the issuer key you trust:
+[From the parent grant to the digest](guides.md#where-the-inputs-come-from) shows the order.
 
 ```ts
 import { parentContextFromGrant } from "@bounded-authority/client";
@@ -336,6 +340,11 @@ parent time may be negative.
 rules as in `RequestedChild` (never `null`), except for the selectors and the times: `notBefore`
 and `expiresAt` are any integers within -(2^53 - 1) to 2^53 - 1. `parentContextFromGrant` returns
 one, with two more members (see [`parentContextFromGrant`](#parentcontextfromgrant)).
+
+### `ParentGrantContext`
+
+What `parentContextFromGrant` returns: a `ParentContext` plus `issuer: string` (the grant's `iss`
+claim, unverified) and `verification: "not_evaluated"` (the signature was not checked).
 
 ### `ParentOperation`
 

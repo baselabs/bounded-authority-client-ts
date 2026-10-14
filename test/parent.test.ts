@@ -126,6 +126,8 @@ test("parentContextFromGrant: reads the parent context from a signed v2 grant", 
     ],
     notBefore: GRANT_BASE.notBefore,
     expiresAt: GRANT_BASE.expiresAt,
+    issuer: GRANT_BASE.issuer,
+    verification: "not_evaluated",
   });
   // The context feeds materializeChild and the digest directly.
   const child = materializeChild({ ...inheritingChild, audiences: null }, r.value);
@@ -212,4 +214,15 @@ test("parentContextFromGrant: a grant with negative times is read, and inherited
   if (child.ok) assert.equal(child.value.notBefore, -20);
   // An explicit child time is still a non-negative epoch.
   assert.deepEqual(materializeChild({ ...inheritingChild, operations: null, audiences: null, notBefore: -1 }, r.value), { ok: false });
+});
+
+test("parentContextFromGrant: the result names the issuer and says the signature was not checked", () => {
+  const r = parentContextFromGrant(producedGrant([{ name: "docs.read", selectors: ["all"] }]));
+  assert.equal(r.ok, true);
+  if (!r.ok) return;
+  assert.equal(r.value.issuer, GRANT_BASE.issuer);
+  assert.equal(r.value.verification, "not_evaluated");
+  // The result goes to materializeChild as it is.
+  assert.equal(materializeChild({ ...explicitChild, audiences: null }, r.value).ok, true);
+  assert.deepEqual(materializeChild({ ...explicitChild, audiences: null }, { ...r.value, verification: "verified" } as never), { ok: false });
 });

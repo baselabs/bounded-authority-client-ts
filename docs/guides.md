@@ -25,13 +25,29 @@ holder already has. The digest needs these values:
 | `consumerId` | The submitting consumer's stable handle, not its credential identifier. |
 
 The parent's audiences, operations, and validity window matter only for members the child sends
-as `null`: see [Inherit values from the parent](#inherit-values-from-the-parent). From the parent
-grant to the digest:
+as `null`: see [Inherit values from the parent](#inherit-values-from-the-parent).
+
+From the parent grant to the digest, in this order:
+
+1. **Verify the grant** with the verifier package's `v2.verifyGrant`, against the issuer key you
+   trust. `parentContextFromGrant` only decodes the grant: it checks the structure, not the
+   signature, and says so in its result (`verification: "not_evaluated"`). Without this step a
+   forged grant would shape the child your holder signs consent to.
+2. **Read the parent context** with `parentContextFromGrant`.
+3. **Parse, materialize, and digest** the child.
 
 ```ts
+import { base64urlDecode, v2 } from "@bounded-authority-protocol/verifier";
 import { childFromWireText, materializeChild, parentContextFromGrant, reauthorizationRequestDigest } from "@bounded-authority/client";
 
-// The parent grant the holder already has (a demo v2 grant signed with a demo issuer key).
+// The issuer key you trust, and the values you expect (here a demo issuer and a fixed clock).
+const trustedIssuer = {
+  keyId: "demo-issuer-key-1",
+  publicKey: base64urlDecode(new TextEncoder().encode("HOVqSMgv-ZFioUvFRGEmdOXWH7kxfmXUBVeA_by03DU")),
+};
+const now = 1800000100; // Math.floor(Date.now() / 1000) in a real client
+
+// The parent grant the holder already has (a demo v2 grant signed with the demo issuer key).
 const parentGrant = [
   "eyJhbGciOiJFZERTQSIsImtpZCI6ImRlbW8taXNzdWVyLWtleS0xIiwidHlwIjoiYmErY2FwIn0.eyJhdWQiOlsiaHR0cHM6",
   "Ly9kYXRhLmV4YW1wbGUiXSwiY25mIjp7ImprdCI6IkFBRUNBd1FGQmdjSUNRb0xEQTBPRHhBUkVoTVVGUllYR0JrYUd4d2RI",
@@ -42,10 +58,21 @@ const parentGrant = [
   "rqfUYBE1XPnh5XSogSfJ6lwn8xNX5FU9ryXrFAu0nFf8Qi9XnmDVE0HlQbkrBw",
 ].join("");
 
+// 1. Verify the signature, issuer, audience, and validity window.
+const verified = v2.verifyGrant(new TextEncoder().encode(parentGrant), trustedIssuer, {
+  issuer: "https://issuer.example",
+  audience: "https://data.example",
+  evaluationTime: now,
+  clockSkew: 60,
+});
+if (!verified.ok) throw new Error("the parent grant does not verify");
+
+// 2. Read the parent context from the verified grant.
 const parent = parentContextFromGrant(parentGrant);
 if (!parent.ok) throw new Error("not a v2 grant");
+console.log(parent.value.issuer, parent.value.verification); // prints: https://issuer.example not_evaluated
 
-// The child narrows the parent: 500 rows of one dataset; it inherits the audiences and window.
+// 3. The child narrows the parent: 500 rows of one dataset; it inherits the audiences and window.
 const requested = childFromWireText(`{
   "holder_thumbprint": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
   "audiences": null,

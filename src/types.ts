@@ -104,6 +104,17 @@ export interface ParentContext extends ParentIdentity {
   readonly expiresAt: number;
 }
 
+/**
+ * What `parentContextFromGrant` returns: the parent context, plus the grant's issuer and a
+ * reminder that the grant's signature was not checked. `materializeChild` accepts it as it is.
+ */
+export interface ParentGrantContext extends ParentContext {
+  /** The grant's `iss` claim, as the grant states it (not verified). */
+  readonly issuer: string;
+  /** The signature was not checked: verify the grant with the verifier's `v2.verifyGrant`. */
+  readonly verification: "not_evaluated";
+}
+
 export interface ReauthorizationDigestInput {
   readonly parent: ParentIdentity;
   /** Canonical lowercase UUID. */

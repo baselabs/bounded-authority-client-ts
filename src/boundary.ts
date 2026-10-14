@@ -390,7 +390,11 @@ export function inheritOperations(operations: readonly ParentOperation[]): Opera
 
 export function parseParentContext(u: unknown): ParentContext {
   const r = record(u);
-  closedKeys(r, ["jti", "contractMajor", "holderThumbprint", "audiences", "operations", "notBefore", "expiresAt"]);
+  // issuer and verification are the extra members of a ParentGrantContext; they do not affect
+  // the child, but a verification other than "not_evaluated" is refused rather than trusted.
+  closedKeys(r, ["jti", "contractMajor", "holderThumbprint", "audiences", "operations", "notBefore", "expiresAt"], ["issuer", "verification"]);
+  if (has(r, "issuer")) identifier(read(r, "issuer"));
+  if (has(r, "verification") && read(r, "verification") !== "not_evaluated") fail("unknown verification state");
   return {
     ...parseIdentityFields(r),
     audiences: parseAudiences(read(r, "audiences")),

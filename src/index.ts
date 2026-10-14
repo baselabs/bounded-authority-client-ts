@@ -21,6 +21,7 @@ import { encodeProjection, requestSha256 } from "./projection.js";
 import type {
   MaterializedChild,
   ParentContext,
+  ParentGrantContext,
   ReauthorizationDigest,
   ReauthorizationDigestInput,
   RequestedChild,
@@ -37,6 +38,7 @@ export type {
   MaterializedChild,
   Operation,
   ParentContext,
+  ParentGrantContext,
   ParentIdentity,
   FloatBound,
   ParentOperation,
@@ -135,17 +137,18 @@ export function reauthorizationRequestDigest(input: ReauthorizationDigestInput):
 /**
  * Reads the parent context a child inherits from: the parent grant's `jti`, holder thumbprint
  * (`cnf.jkt`), audiences, operations, `nbf`, and `exp`, from the compact v2 grant the holder
- * already has. The grant is decoded with the verifier package's `v2.decodeGrant`, which checks its
- * structure but not its signature: verify it with `v2.verifyGrant` first when its origin matters.
+ * already has, plus its `issuer` and `verification: "not_evaluated"`. The grant is decoded with the
+ * verifier package's `v2.decodeGrant`, which checks its structure but not its signature: verify it
+ * with `v2.verifyGrant` first.
  * Refuses anything that is not a well-formed v2 grant (a v1 or v3 grant included).
  */
-export function parentContextFromGrant(grantCompact: string): Result<ParentContext> {
+export function parentContextFromGrant(grantCompact: string): Result<ParentGrantContext> {
   return guarded(() => {
     const compact = utf8(wellFormedText(grantCompact));
     const decoded = v2.decodeGrant(compact);
     if (!decoded.ok) fail("not a well-formed v2 grant");
     const g = decoded.value;
-    return parseParentContext({
+    const parent = parseParentContext({
       jti: g.grantId,
       contractMajor: SUPPORTED_PARENT_MAJOR,
       holderThumbprint: ascii.decode(base64urlEncode(g.holderThumbprint)),
@@ -154,5 +157,6 @@ export function parentContextFromGrant(grantCompact: string): Result<ParentConte
       notBefore: g.notBefore,
       expiresAt: g.expiresAt,
     });
+    return { ...parent, issuer: g.issuer, verification: "not_evaluated" as const };
   });
 }

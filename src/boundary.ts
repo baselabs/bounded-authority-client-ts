@@ -1,7 +1,7 @@
 // Parse at the boundary: every value that enters the package is checked here, once, into a typed
 // copy. Everything unknown, malformed, or out of range throws InvalidError, which the public
 // functions turn into the single closed error. Nothing here is lenient.
-import { base64urlDecode, fail, MAXIMA, v2 } from "@bounded-authority-protocol/verifier";
+import { base64urlDecode, fail, jcsEncode, MAXIMA, v2 } from "@bounded-authority-protocol/verifier";
 import { utf8 } from "./bytes.js";
 import { tagged } from "./projection.js";
 import type {
@@ -187,7 +187,24 @@ function parseJson(u: unknown, depth: number): JsonValue {
 
 // ---- operations and selectors ---------------------------------------------------------------
 
+/**
+ * A child selector must also be one a v2 grant can carry (the verifier's `v2.parseSelector`), and
+ * each JSON value must have a canonical form within the verifier's bounds (`jcsEncode`). Checking
+ * both here, at the boundary, makes `childFromWire` and `childFromWireText` refuse the same values,
+ * and refuse them before the digest is computed.
+ */
+function withinProtocolBounds(s: Selector): Selector {
+  v2.parseSelector(tagged(s as unknown as JsonValue));
+  if (s.kind === "equals") jcsEncode(tagged(s.value));
+  if (s.kind === "one_of") for (const v of s.values) jcsEncode(tagged(v));
+  return s;
+}
+
 function parseSelector(u: unknown): Selector {
+  return withinProtocolBounds(parseChildSelector(u));
+}
+
+function parseChildSelector(u: unknown): Selector {
   const r = record(u);
   const kind = read(r, "kind");
   switch (kind) {

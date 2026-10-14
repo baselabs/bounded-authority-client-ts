@@ -90,7 +90,9 @@ Like [`childFromWire`](#childfromwire), from the JSON text of `body.child`.
   trailing bytes, a duplicate member name at any depth, an integer field (a bound, a timestamp, a
   policy member) spelled with a fraction or an exponent (`2500.0`, `1E2`, `-0.0`), a number with a
   leading zero, a lone surrogate, and a non-string argument. `-0` is the integer zero and is
-  accepted.
+  accepted. Nothing else: there is no size or node limit on the text as a whole, so the two
+  functions accept and refuse the same children (`test/parity.test.ts` checks this over
+  generated children).
 
 Inside `equals` and `one_of` values any valid number spelling is accepted: `2.0` and `2`
 canonicalize to the same bytes.
@@ -391,5 +393,5 @@ At least one ceiling (`maxCount`, `maxSum`, or `maxDistinct`) is required.
 ### `JsonValue`
 
 A JSON value as admitted in `equals` and `one_of` selectors: `null`, a boolean, a finite number, a
-string without lone surrogates, an array, or a plain object of these, within the verifier
-package's canonical-JSON bounds.
+string without lone surrogates, an array, or a plain object of these, within the canonical-JSON
+limits listed in [Size and count limits](req2-projection.md#size-and-count-limits).

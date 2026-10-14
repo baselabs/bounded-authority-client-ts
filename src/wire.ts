@@ -2,7 +2,7 @@
 // The mapping is closed: a member outside the table, in either spelling, is refused.
 import { base64urlDecode, fail, jsonDecode, utf8Str } from "@bounded-authority-protocol/verifier";
 import type { Tagged } from "@bounded-authority-protocol/verifier";
-import { WireFloat, readMember as read, recordOf as record } from "./boundary.js";
+import { readMember as read, recordOf as record } from "./boundary.js";
 
 const CHILD_MEMBERS: ReadonlyMap<string, string> = new Map([
   ["holder_thumbprint", "holderThumbprint"],
@@ -39,29 +39,6 @@ export function wireChildToTyped(u: unknown): Record<string, unknown> {
   // A null policy is not renamed away: record() inside rename() refuses it.
   if (Object.hasOwn(child, "cumulativePolicy")) child["cumulativePolicy"] = rename(child["cumulativePolicy"], POLICY_MEMBERS);
   return child;
-}
-
-/**
- * Converts strictly decoded JSON text (duplicate member names already refused by the decoder) into
- * plain values. Integers become numbers; a number spelled with a fraction or an exponent becomes a
- * WireFloat, which integer fields then refuse.
- */
-export function fromTagged(t: Tagged): unknown {
-  switch (t.t) {
-    case "null":
-      return null;
-    case "bool":
-    case "int":
-      return t.v;
-    case "float":
-      return new WireFloat(t.v);
-    case "string":
-      return utf8Str(t.v);
-    case "array":
-      return t.v.map(fromTagged);
-    case "object":
-      return Object.fromEntries([...t.v].map(([k, v]) => [k, fromTagged(v)]));
-  }
 }
 
 /** A tagged JSON value as a plain value; both numeric tags become numbers. */

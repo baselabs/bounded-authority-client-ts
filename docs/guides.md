@@ -256,7 +256,7 @@ Each cause, and its fix:
 | Duplicate operation names | List each operation name once. |
 | A count or size over a [limit](req2-projection.md#size-and-count-limits) | Stay within 64 audiences, 64 operations, 64 selectors per operation, 256 `one_of` values, and the byte limits. |
 | A string with a lone surrogate | Pass well-formed Unicode; `String.prototype.isWellFormed()` checks it. |
-| A non-finite number, or a JSON value beyond the canonical-JSON bounds | Use finite numbers and shallower values. |
+| A non-finite number, or a selector value beyond the [canonical-JSON limits](req2-projection.md#size-and-count-limits) (nesting, items, members, name and string bytes, nodes) | Use finite numbers and smaller values. |
 | A class instance, a `Map`, an accessor property, or a Proxy that throws | Pass plain objects and arrays of data. |
 
 ## Test your integration against the vectors

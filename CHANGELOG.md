@@ -29,6 +29,13 @@ The first version intended for npm: everything in 0.1.0, plus the changes below.
   members and fractional `lte`/`gte` bounds. New types `ParentOperation` and `ParentSelector`;
   `ParentContext.operations` uses them. An inherited `all` becomes a plain `all`, and an inherited
   fractional bound is refused, because REQ-2 bounds are integers.
+- **Fixed: the two child entry points refused different children.** `childFromWire` accepted
+  selector values beyond the canonical-JSON limits (only the digest refused them), while
+  `childFromWireText` applied whole-document decoder limits (64 KiB, 4,096 nodes) that a valid
+  child can exceed. Both now check each selector against the verifier's v2 selector rules and
+  each value against its canonical-JSON limits up front, and the text is read by a strict JSON
+  reader with no whole-document limit. `test/parity.test.ts` checks that both accept and refuse
+  alike, at each limit and over generated children.
 - The browser lane closes its local server when a browser fails to launch, so a missing browser
   build fails the lane instead of hanging it.
 - `docs/req2-projection.md`: the examples table now matches the vectors, and the epoch-second

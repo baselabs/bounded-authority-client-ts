@@ -1,7 +1,7 @@
 // @bounded-authority/client: the wire contract, contract cases, and vectors a client needs for a
 // bounded authority service. This release carries one function family: the REQ-2 reauthorization
 // request digest, and the parent context it inherits from. See docs/req2-projection.md.
-import { base64urlEncode, err, fail, jsonDecode, ok, v2 } from "@bounded-authority-protocol/verifier";
+import { base64urlEncode, err, fail, ok, v2 } from "@bounded-authority-protocol/verifier";
 import type { Result } from "@bounded-authority-protocol/verifier";
 import {
   closedKeysOf,
@@ -25,7 +25,8 @@ import type {
   ReauthorizationDigestInput,
   RequestedChild,
 } from "./types.js";
-import { fromTagged, grantOperations, wireChildToTyped } from "./wire.js";
+import { grantOperations, wireChildToTyped } from "./wire.js";
+import { readJsonText } from "./json-text.js";
 import { utf8 } from "./bytes.js";
 
 const ascii = new TextDecoder("ascii");
@@ -77,12 +78,10 @@ export function childFromWire(wire: unknown): Result<RequestedChild> {
  * refuses an integer field (a bound, a timestamp, a policy limit) spelled with a fraction or an
  * exponent, such as `2500.0`, `1E2`, or `-0.0`, as the service does. JSON values in `equals` and
  * `one_of` selectors may still be spelled any valid way: they canonicalize to the same bytes.
+ * Every other limit is the one `childFromWire` applies, so the two refuse the same children.
  */
 export function childFromWireText(jsonText: string): Result<RequestedChild> {
-  return guarded(() => {
-    // A lone surrogate has no UTF-8 form; the encoder would silently substitute U+FFFD.
-    return parseRequestedChild(wireChildToTyped(fromTagged(jsonDecode(utf8(wellFormedText(jsonText))))));
-  });
+  return guarded(() => parseRequestedChild(wireChildToTyped(readJsonText(wellFormedText(jsonText)))));
 }
 
 /**

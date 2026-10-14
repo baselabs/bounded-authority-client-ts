@@ -160,6 +160,12 @@ input as given (before deduplication); byte limits apply to the UTF-8 form.
 | Selectors per operation | at most 64 |
 | `one_of` values | at most 256 (65 identical values still count as 65) |
 | Path | 1 to 32 components, each 1 to 128 bytes (selector paths and policy paths) |
+| Each `equals` value and each `one_of` value | the verifier package's canonical-JSON limits (`MAXIMA`): at most 32 levels of nesting, 256 items per array, 64 members per object, 128 bytes per member name, 8,192 bytes per string, 4,096 nodes, and 65,536 canonical bytes; numbers within -(2^53 - 1) to 2^53 - 1 |
+
+Both `childFromWire` and `childFromWireText` check every limit in this table, including the
+selector-value limits, as soon as they read the child, and refuse the same children. Neither
+applies a size or node limit to the child as a whole: a child of 16 operations with 64 selectors
+each (about 42 KB of JSON) is accepted by both.
 
 ## JSON text
 
@@ -168,7 +174,9 @@ how a number is spelled. The service refuses a body with a duplicate member name
 integer field spelled with a fraction or an exponent (`2500.0`, `1E2`, `-0.0`). Use
 `childFromWireText` to check the text. `childFromWire` takes an already-parsed value and
 documents that the text it came from met both rules. Inside `equals` and `one_of` values any
-valid number spelling is accepted: `2.0` and `2` canonicalize to the same bytes.
+valid number spelling is accepted: `2.0` and `2` canonicalize to the same bytes. Apart from these
+two text-only rules and invalid JSON, `childFromWireText` refuses exactly what `childFromWire`
+refuses for the parsed text.
 
 ## Refusals
 
@@ -186,8 +194,9 @@ Every refusal is one closed error with no detail. From the contract text:
 
 Beyond the contract's literal text, this package also fails closed on inputs that have no single
 byte form or no useful meaning: empty audience, operation, selector, or `one_of` sets; empty
-identifier strings; strings with unpaired surrogates (no UTF-8 form); non-finite numbers; JSON
-values that exceed the verifier package's canonical-JSON bounds; and wire members that are missing
+identifier strings; strings with unpaired surrogates (no UTF-8 form); non-finite numbers; selector
+values beyond the canonical-JSON limits in [Size and count limits](#size-and-count-limits); and wire
+members that are missing
 (a missing `audiences`, `operations`, `not_before`, or `expires_at` member is refused; `null`
 means inherit, and absence is not `null`).
 

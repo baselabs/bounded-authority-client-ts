@@ -124,7 +124,7 @@ const MUTATIONS = [
 
   // ---- parent operations ---------------------------------------------------------------------
   { id: "parent-selector-unchecked", rule: "a parent selector is accepted only when the v2 profile accepts it", file: "src/boundary.ts",
-    find: "  v2.parseSelector(tagged(copy));\n", replace: "", expect: "parent refused: an all selector with path only" },
+    find: "  v2.parseSelector(\n    bound !== undefined", replace: "  ((_: unknown) => undefined)(\n    bound !== undefined", expect: "parent refused: an all selector with path only" },
   { id: "inherit-all-keeps-inert", rule: "an inherited all is a plain all", file: "src/boundary.ts",
     find: '(s.kind === "all" ? { kind: "all" } : s)', replace: "s", expect: "parent: an inherited all with inert members" },
   { id: "inherit-skips-child-rules", rule: "an inherited selector must satisfy the child rules", file: "src/boundary.ts",
@@ -164,11 +164,13 @@ const MUTATIONS = [
     find: "  } catch {\n    return err();\n  }", replace: '  } catch (e) {\n    if (!(e instanceof Error && e.name === "InvalidError")) throw e;\n    return err();\n  }',
     expect: "a throwing Proxy anywhere" },
   { id: "text-accepts-wire-float", rule: "an integer field spelled with a fraction or exponent is refused", file: "src/json-text.ts",
-    find: "? n : new WireFloat(n);", replace: "? n : n;", expect: "text refuses: an lte bound spelled 5.0" },
+    find: 'if (t.t === "float") return new WireFloat(t.v);', replace: 'if (t.t === "float") return t.v;', expect: "text refuses: an lte bound spelled 5.0" },
   { id: "text-accepts-duplicates", rule: "duplicate member names in JSON text are refused", file: "src/json-text.ts",
     find: 'if (seen.has(name)) return fail("duplicate member name");', replace: "", expect: "text refuses: a duplicate member name in the child" },
   { id: "text-accepts-leading-zero", rule: "the text follows the JSON number grammar", file: "src/json-text.ts",
-    find: "/-?(?:0|[1-9][0-9]*)", replace: "/-?(?:[0-9]+)", expect: "text refuses: a number with a leading zero" },
+    find: "/-?(?:0|[1-9][0-9]*)", replace: "/-?(?:[0-9]+)", expect: "text refuses: a number with a leading zero",
+    // jsonDecode refuses a leading zero too; the rule only breaks when both checks are gone.
+    also: [{ file: "src/json-text.ts", find: "    const t = jsonDecode(utf8(m[0]));\n", replace: '    const t = /[.eE]/.test(m[0]) ? { t: "float", v: Number(m[0]) } : { t: "int", v: Number(m[0]) };\n' }] },
   { id: "text-accepts-trailing", rule: "nothing may follow the JSON value", file: "src/json-text.ts",
     find: 'if (i !== text.length) fail("trailing content after the JSON value");', replace: "", expect: "text refuses: trailing bytes after the value" },
   { id: "reader-accepts-control-chars", rule: "a raw control character in a JSON string is refused", file: "src/json-text.ts",

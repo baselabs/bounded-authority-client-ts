@@ -157,14 +157,16 @@ The cumulative policy is never inherited, and the holder thumbprint is always re
 
 ```ts
 import { materializeChild, reauthorizationRequestDigest } from "@bounded-authority/client";
-import type { MaterializedChild, ParentContext } from "@bounded-authority/client";
+import type { MaterializedChild, Operation, ParentContext } from "@bounded-authority/client";
+
+const scheduling: Operation[] = [{ name: "calendar.schedule", selectors: [{ kind: "lte", path: ["duration_minutes"], value: 120 }] }];
 
 const parent: ParentContext = {
   jti: "parent-grant-01",
   contractMajor: 2,
   holderThumbprint: "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
   audiences: ["https://calendar.example", "https://docs.example"],
-  operations: [{ name: "calendar.schedule", selectors: [{ kind: "lte", path: ["duration_minutes"], value: 120 }] }],
+  operations: scheduling,
   notBefore: 1800000000,
   expiresAt: 1800003600,
 };
@@ -190,7 +192,7 @@ const explicit = materializeChild(
   {
     holderThumbprint: childKey,
     audiences: [...parent.audiences].reverse(),
-    operations: parent.operations,
+    operations: scheduling,
     notBefore: parent.notBefore,
     expiresAt: parent.expiresAt,
   },

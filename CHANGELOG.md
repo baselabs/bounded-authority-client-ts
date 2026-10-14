@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] - 0.1.0
+## [0.1.0] - 2026-10-14
 
 First slice of the TypeScript client SDK for the bounded authority service. Unpublished.
 

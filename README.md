@@ -3,7 +3,7 @@
 [![CI](https://github.com/baselabs/bounded-authority-client-ts/actions/workflows/ci.yml/badge.svg)](https://github.com/baselabs/bounded-authority-client-ts/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
-The TypeScript client SDK for the bounded authority service. Version 0.1.0 is unpublished.
+The TypeScript client SDK for the bounded authority service.
 
 ## The boundary rule
 

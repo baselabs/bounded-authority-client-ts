@@ -12,6 +12,7 @@ on:
       - "!**/*.md"
       - "README.md"
       - "CHANGELOG.md"
+      - "RELEASING.md"
       - "docs/**"
       - "test/browser/README.md"
   pull_request:

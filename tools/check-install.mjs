@@ -11,7 +11,11 @@
 //   4. the README quickstart saved as quickstart.ts and run with the README's run block, which
 //      must print exactly what its `// prints:` comments say.
 // Needs the npm registry: the tarball's runtime dependency is installed from it.
-import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+//
+// CHECK_INSTALL_TARBALL=<path> skips step 1 and tests that tarball instead (copied into the clone
+// under the README's name), so the release workflow checks the exact file it publishes.
+import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
@@ -52,9 +56,17 @@ try {
   const expected = [...quickstart.code.matchAll(/\/\/ prints: (.*)$/gm)].map((m) => m[1].trimEnd());
   if (expected.length === 0) throw new Error("the quickstart states no // prints: output");
 
-  run("pnpm", ["pack"], ROOT);
-  if (!existsSync(tarballInClone)) throw new Error(`pnpm pack did not write ${TARBALL}`);
-  console.log(`packed ${TARBALL}`);
+  const given = process.env.CHECK_INSTALL_TARBALL;
+  if (given) {
+    if (tarballExisted) throw new Error(`${TARBALL} already exists in the clone; not overwriting it`);
+    copyFileSync(given, tarballInClone);
+    console.log(`testing the given tarball ${given}`);
+  } else {
+    run("pnpm", ["pack"], ROOT);
+    if (!existsSync(tarballInClone)) throw new Error(`pnpm pack did not write ${TARBALL}`);
+    console.log(`packed ${TARBALL}`);
+  }
+  console.log(`tarball sha256 ${createHash("sha256").update(readFileSync(tarballInClone)).digest("hex")}`);
 
   symlinkSync(ROOT, join(work, "bounded-authority-client-ts"), "dir");
   run("sh", ["-e", "-c", projectBlock], work);

@@ -11,7 +11,7 @@ export function sampleDocs(root) {
 
 /** Every Markdown file test/docs.test.ts reads (samples, links, and anchors). */
 export function checkedDocs(root) {
-  return [...sampleDocs(root), "test/browser/README.md", "CHANGELOG.md"];
+  return [...sampleDocs(root), "test/browser/README.md", "CHANGELOG.md", "RELEASING.md"];
 }
 
 /** Paths tools/check-pack.mjs requires in the packed file list. */

@@ -222,6 +222,13 @@ pnpm test:browser      # needs Playwright browsers: pnpm exec playwright install
 `chromium`). CI runs every command above except `pnpm test:browser` on Node.js 22.23.1 and
 24.19.0, and the browser lane once per engine on Node.js 22.23.1, all on Linux.
 
+## Releasing
+
+Maintainers: [`RELEASING.md`](RELEASING.md) gives the first publish by hand (npm's staged
+publishing needs the package to exist on npm) and the staged releases after it. At the first
+publish, the Install section above gets one edit: its from-source steps become
+`npm install @bounded-authority/client`.
+
 ## License
 
 Apache-2.0. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).

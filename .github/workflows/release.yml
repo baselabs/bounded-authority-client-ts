@@ -1,24 +1,30 @@
-# npm releases of @bounded-authority/client, started by pushing a v* tag. Publishing uses
-# npm trusted publishing (GitHub Actions OIDC, no long-lived token) in two stages: this
-# workflow stages the package with provenance (`npm stage publish`), and a maintainer
-# approves the staged release on npmjs.com. The workflow cannot make a version live alone.
+# npm releases of @bounded-authority/client. Publishing uses npm trusted publishing (GitHub
+# Actions OIDC, no long-lived token) in two stages: this workflow stages the package with
+# provenance (`npm stage publish`), and a maintainer approves the staged version on npmjs.com.
+# The workflow cannot make a version live alone.
 #
-# The verify job packs the tarball it checked and uploads it; the publish job stages exactly that
-# file. npm stage needs the package to exist on npm already, so the first version of a new
-# package is published by a maintainer by hand.
+# - A pushed v* tag runs both jobs. A manual run (workflow_dispatch) runs only the verify job and
+#   leaves its tarball as an artifact, which is how the first version is published by hand: npm
+#   stage and trusted publishing need the package to exist on npm. See RELEASING.md.
+# - The verify job packs the tree once, runs every check on it (check:install installs that exact
+#   tarball), and uploads it with its SHA-256; the publish job stages exactly that file.
 name: Release
 
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   verify:
-    name: Verify the tagged tree (no publish credentials)
+    name: Verify and pack (no publish credentials)
     runs-on: ubuntu-latest
+    outputs:
+      sha256: ${{ steps.pack.outputs.sha256 }}
+      file: ${{ steps.pack.outputs.file }}
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -37,7 +43,28 @@ jobs:
       - name: Install (frozen lockfile)
         run: pnpm install --frozen-lockfile
 
-      - name: Full verification gate (typecheck, tests, mutations, package contents, vectors against dist/, docs against the installed tarball)
+      # A release is a v* tag on the commit that sets package.json's version; refuse a mismatch
+      # before anything is packed. A manual run has no tag to compare.
+      - name: Tag must match package.json version
+        if: github.event_name == 'push'
+        run: |
+          node --input-type=module -e "const tag = process.env.GITHUB_REF_NAME.replace(/^v/, ''); const pkg = (await import('./package.json', { with: { type: 'json' } })).default.version; if (pkg !== tag) { console.error(\`tag v\${tag} does not match package.json version \${pkg}\`); process.exit(1); } console.log(\`tag v\${tag} matches package.json \${pkg}\`);"
+
+      # Packed once: every later check and the publish job use this file.
+      - name: Pack the tree
+        id: pack
+        run: |
+          mkdir release-tarball
+          pnpm pack --pack-destination release-tarball
+          files=(release-tarball/*.tgz)
+          if [ "${#files[@]}" -ne 1 ]; then echo "expected one tarball, found ${#files[@]}"; exit 1; fi
+          sha=$(sha256sum "${files[0]}" | cut -d' ' -f1)
+          echo "${sha}  ${files[0]}"
+          { echo "sha256=${sha}"; echo "file=$(basename "${files[0]}")"; } >> "$GITHUB_OUTPUT"
+
+      - name: Full verification gate (typecheck, tests, mutations, package contents, vectors against dist/, docs against this tarball)
+        env:
+          CHECK_INSTALL_TARBALL: release-tarball/${{ steps.pack.outputs.file }}
         run: pnpm typecheck && pnpm test && pnpm test:exhaustive && pnpm test:mutations && pnpm check:pack && pnpm check:dist && pnpm check:install
 
       - name: Install browsers
@@ -46,17 +73,8 @@ jobs:
       - name: Browser lanes (Chromium, Firefox, WebKit under the strict CSP)
         run: BAP_BROWSERS=chromium,firefox,webkit pnpm test:browser
 
-      # A release is a v* tag on the commit that sets package.json's version; refuse a mismatch
-      # before anything is packed.
-      - name: Tag must match package.json version
-        run: |
-          node --input-type=module -e "const tag = process.env.GITHUB_REF_NAME.replace(/^v/, ''); const pkg = (await import('./package.json', { with: { type: 'json' } })).default.version; if (pkg !== tag) { console.error(\`tag v\${tag} does not match package.json version \${pkg}\`); process.exit(1); } console.log(\`tag v\${tag} matches package.json \${pkg}\`);"
-
-      - name: Pack the verified tree
-        run: |
-          mkdir release-tarball
-          pnpm pack --pack-destination release-tarball
-          sha256sum release-tarball/*.tgz
+      - name: The tarball is unchanged by the checks
+        run: echo "${{ steps.pack.outputs.sha256 }}  release-tarball/${{ steps.pack.outputs.file }}" | sha256sum --check
 
       - name: Upload the tarball for the publish job
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -69,6 +87,7 @@ jobs:
   publish:
     name: Stage-publish to npm (provenance-bound; human approval required)
     needs: verify
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -87,15 +106,24 @@ jobs:
           name: release-tarball
           path: release-tarball
 
-      - name: The tarball's version must match the tag
+      - name: The tarball is the one verified, and its version matches the tag
         id: tarball
+        env:
+          VERIFIED_SHA256: ${{ needs.verify.outputs.sha256 }}
+          VERIFIED_FILE: ${{ needs.verify.outputs.file }}
         run: |
-          files=(release-tarball/*.tgz)
-          if [ "${#files[@]}" -ne 1 ]; then echo "expected one tarball, found ${#files[@]}"; exit 1; fi
-          sha256sum "${files[0]}"
-          version=$(tar -xzOf "${files[0]}" package/package.json | node -e 'let s="";process.stdin.on("data",(d)=>s+=d).on("end",()=>console.log(JSON.parse(s).version))')
+          file="release-tarball/${VERIFIED_FILE}"
+          echo "${VERIFIED_SHA256}  ${file}" | sha256sum --check
+          version=$(tar -xzOf "$file" package/package.json | node -e 'let s="";process.stdin.on("data",(d)=>s+=d).on("end",()=>console.log(JSON.parse(s).version))')
           if [ "$version" != "${GITHUB_REF_NAME#v}" ]; then echo "tarball version $version does not match tag $GITHUB_REF_NAME"; exit 1; fi
-          echo "file=${files[0]}" >> "$GITHUB_OUTPUT"
+          # A pre-release version (1.2.0-beta.1) is published under a dist-tag named by its first
+          # pre-release identifier; npm refuses to apply "latest" to it implicitly.
+          tag=latest
+          if [[ "$version" == *-* ]]; then
+            tag="${version#*-}"; tag="${tag%%.*}"
+            if ! [[ "$tag" =~ ^[a-z][a-z0-9-]*$ ]]; then echo "pre-release $version has no usable dist-tag name (got \"$tag\")"; exit 1; fi
+          fi
+          { echo "file=$file"; echo "version=$version"; echo "dist_tag=$tag"; } >> "$GITHUB_OUTPUT"
 
       # Idempotent releases: a version already published verifies only.
       - name: Check the registry for the version
@@ -107,21 +135,37 @@ jobs:
             echo "published=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # A staged version is not visible to npm view, and the short-lived trusted-publishing token
-      # cannot run `npm stage list`. Staged and published versions share one version index, so
-      # staging a version again is refused; that refusal means the version is already staged or
-      # published, and the run succeeds with a notice. The refusal's exact wording has not been
-      # observed for a staged version; the patterns match npm's "cannot publish over the
-      # previously published versions" and an "already staged/exists" message.
+      # What counts, from npm 11.17's lib/commands/publish.js (npm stage publish runs the same
+      # command class): on success it prints "+ <name>@<version> (staged with id <id>)" or
+      # "+ <name>@<version> (staged)"; a version already on the registry stops it with "You cannot
+      # publish over the previously published versions: <version>."; and lib/utils/error-message.js
+      # reports a registry conflict as code EPUBLISHCONFLICT. Those two mean the version is already
+      # out, and end the run with a notice. Anything else fails, including a conflict with a
+      # staged-but-unapproved version, whose registry wording npm's source does not contain.
+      # The success line is the confirmation: npm view does not show a staged version, and the
+      # short-lived trusted-publishing token cannot run `npm stage list`.
       - name: Stage publish the tarball with provenance (human approval required)
         if: steps.existing.outputs.published == 'false'
+        env:
+          FILE: ${{ steps.tarball.outputs.file }}
+          VERSION: ${{ steps.tarball.outputs.version }}
+          DIST_TAG: ${{ steps.tarball.outputs.dist_tag }}
         run: |
           set +e
-          out=$(npm stage publish "${{ steps.tarball.outputs.file }}" --provenance 2>&1)
+          out=$(npm stage publish "$FILE" --provenance --tag "$DIST_TAG" 2>&1)
           status=$?
+          set -e
           echo "$out"
-          if [ $status -ne 0 ] && echo "$out" | grep -Eiq 'cannot publish over|previously published|already (been )?staged|already exists'; then
-            echo "::notice::${GITHUB_REF_NAME#v} is already staged or published; approve or reject the staged version on npmjs.com."
+          if [ $status -eq 0 ]; then
+            if grep -Fq "+ @bounded-authority/client@${VERSION} (staged" <<<"$out"; then
+              echo "::notice::@bounded-authority/client@${VERSION} is staged with dist-tag ${DIST_TAG}; approve it on npmjs.com."
+              exit 0
+            fi
+            echo "npm exited 0 without its staged line for ${VERSION}; treating the stage as unconfirmed"
+            exit 1
+          fi
+          if grep -Fq "You cannot publish over the previously published versions: ${VERSION}." <<<"$out" || grep -Eq '(^|[^A-Z])EPUBLISHCONFLICT' <<<"$out"; then
+            echo "::notice::@bounded-authority/client@${VERSION} is already on the registry; nothing to stage."
             exit 0
           fi
           exit $status

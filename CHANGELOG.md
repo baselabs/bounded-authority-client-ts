@@ -21,11 +21,14 @@ The first version intended for npm: everything in 0.1.0, plus the changes below.
   `test/ci-paths.test.ts` reads the workflow with a YAML parser (new dev dependency `yaml`) and
   fails unless every tracked file other than unread Markdown, and every file a check reads, runs
   CI under GitHub's documented filter rules.
-- The release workflow's verify job also runs `pnpm check:install`, checks the tag against
-  `package.json`, packs the tarball it verified, and uploads it; the publish job stages exactly that
-  tarball (after checking its version against the tag), and a rerun for a version that is already
-  staged or published ends with a notice instead of a failure. The comments describe the release
-  process without internal wording, and note that npm stage needs the package to exist already.
+- Release workflow: the verify job packs the tree once, runs every check on that tarball
+  (`pnpm check:install` installs it), and uploads it with its SHA-256; the publish job checks the
+  SHA-256 and the version against the tag, stages exactly that file with a dist-tag (`latest`, or
+  the pre-release identifier), and treats only npm's own "already published" results
+  (`EPUBLISHCONFLICT`, "You cannot publish over the previously published versions") as done. A
+  manual run verifies and packs without publishing. New `RELEASING.md` gives the first publish by
+  hand (npm stage and trusted publishing need the package to exist) and the staged releases after
+  it.
 - **New: `parentContextFromGrant`** reads the parent context (`jti`, holder thumbprint,
   audiences, operations, `nbf`, `exp`) from the compact v2 parent grant, through the verifier
   package's `v2.decodeGrant`.

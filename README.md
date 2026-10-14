@@ -165,7 +165,7 @@ runs the quickstart there.
 ```bash
 pnpm install
 pnpm typecheck         # strict tsc over src/, test/, and the browser page
-pnpm test              # vectors, byte pins, properties, refusals, guard, docs samples and links
+pnpm test              # vectors, byte pins, properties, refusals, guard, docs samples and links, CI filter
 pnpm test:exhaustive   # every Unicode scalar value, about 30 seconds
 pnpm test:mutations    # each rule broken in turn; a named test must fail
 pnpm check:pack        # the packed file list: dist/ present, no source, tests, or maps

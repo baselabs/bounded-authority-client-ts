@@ -3,9 +3,17 @@ name: CI
 on:
   push:
     branches: [main]
-    # Markdown is not ignored: the README and docs/ samples run in pnpm test and check:install.
-    paths-ignore:
-      - "LICENSE*"
+    # A push that changes only Markdown no check reads does not run CI. Order matters: a later
+    # pattern overrides an earlier one, so the Markdown the checks read (tools/checked-files.mjs:
+    # docs samples and links, packed files) is included again. test/ci-paths.test.ts fails if a
+    # checked file is excluded here.
+    paths:
+      - "**"
+      - "!**/*.md"
+      - "README.md"
+      - "CHANGELOG.md"
+      - "docs/**"
+      - "test/browser/README.md"
   pull_request:
 
 permissions:

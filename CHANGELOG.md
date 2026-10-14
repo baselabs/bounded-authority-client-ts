@@ -15,8 +15,13 @@ package's behavior.
   checks each `// prints:` comment against the output, and checks every relative link and anchor.
 - `pnpm check:install` packs the package, installs the tarball into a fresh project, typechecks
   every docs sample against the installed declarations, and runs the quickstart there. CI runs
-  it, and no longer skips pushes that change only Markdown. `pnpm check:pack` also requires
-  `docs/api.md` and `docs/guides.md` in the package.
+  it. `pnpm check:pack` also requires `docs/api.md` and `docs/guides.md` in the package.
+- CI's push filter still skips pushes that change only Markdown no check reads, but a change to a
+  file a check reads (`README.md`, `CHANGELOG.md`, `docs/`, `test/browser/README.md`, `LICENSE`)
+  now runs CI. The checks take their file lists from `tools/checked-files.mjs`, and
+  `test/ci-paths.test.ts` fails if the filter excludes any of those files.
+- The browser lane closes its local server when a browser fails to launch, so a missing browser
+  build fails the lane instead of hanging it.
 - `docs/req2-projection.md`: the examples table now matches the vectors, and the epoch-second
   range is stated.
 - `package.json`: keywords, and a plainer description.

@@ -11,6 +11,7 @@ import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { sampleDocs } from "./checked-files.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -21,8 +22,7 @@ function run(cmd, args, cwd) {
 }
 
 const fences = (rel) => [...readFileSync(join(ROOT, rel), "utf8").matchAll(/^```ts\n([\s\S]*?)^```$/gm)].map((m) => m[1]);
-const docs = ["README.md", ...readdirSync(join(ROOT, "docs")).filter((f) => f.endsWith(".md")).sort().map((f) => `docs/${f}`)];
-const samples = docs.flatMap(fences);
+const samples = sampleDocs(ROOT).flatMap(fences);
 // The first ts fence of the README is the quickstart.
 const quickstart = fences("README.md")[0];
 if (quickstart === undefined || samples.length < 2) {

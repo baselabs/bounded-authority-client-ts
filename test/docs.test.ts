@@ -5,10 +5,11 @@
 // quickstart again against the packed tarball installed the way a reader installs it.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { format } from "node:util";
+import { checkedDocs } from "../tools/checked-files.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const PACKAGE = "@bounded-authority/client";
@@ -16,12 +17,7 @@ const SRC_ENTRY = pathToFileURL(join(ROOT, "src", "index.ts")).href;
 // Inside node_modules so the samples resolve the verifier package the way the repo does.
 const WORK = join(ROOT, "node_modules", ".cache", "doc-samples");
 
-const DOCS = [
-  "README.md",
-  ...readdirSync(join(ROOT, "docs")).filter((f) => f.endsWith(".md")).sort().map((f) => `docs/${f}`),
-  "test/browser/README.md",
-  "CHANGELOG.md",
-];
+const DOCS = checkedDocs(ROOT);
 
 export interface Sample {
   readonly doc: string;

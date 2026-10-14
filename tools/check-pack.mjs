@@ -5,6 +5,7 @@
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { PACK_REQUIRED } from "./checked-files.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const r = spawnSync("npm", ["pack", "--dry-run", "--json"], { cwd: ROOT, encoding: "utf8" });
@@ -16,10 +17,7 @@ const start = r.stdout.indexOf("[");
 const packed = JSON.parse(r.stdout.slice(start))[0];
 const files = packed.files.map((f) => f.path);
 
-const required = [
-  "package.json", "LICENSE", "NOTICE", "README.md", "docs/req2-projection.md", "docs/api.md", "docs/guides.md",
-  "dist/src/index.js", "dist/src/index.d.ts", "dist/src/boundary.js", "dist/src/projection.js",
-];
+const required = PACK_REQUIRED;
 const forbidden = [/^src\//, /^test\//, /^tools\//, /^\.github\//, /\.map$/, /^pnpm-lock/, /^tsconfig/];
 
 const problems = [

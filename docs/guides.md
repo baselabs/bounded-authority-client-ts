@@ -273,7 +273,10 @@ a client that reimplements the projection in another language. The file has:
 - `thumbprint_seeds`: how the demo thumbprints were made (32 bytes counting up from `0x00`,
   `0x20`, and `0x40`).
 
-Check the file's SHA-256 before you trust it, then run every vector. From the root of a clone:
+Check the file's SHA-256 before you trust it, then run every vector. In a clone, run
+`pnpm install` and `pnpm build` first: inside the clone, `@bounded-authority/client` resolves to
+the built `dist/` through the package's own name. Then save this as `vectors-check.ts` in the root
+of the clone and run `node vectors-check.ts` (`pnpm check:dist` does exactly that):
 
 ```ts
 import { createHash } from "node:crypto";

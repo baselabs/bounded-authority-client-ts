@@ -1,57 +1,73 @@
 #!/usr/bin/env node
-// Installs the package the way the README tells a reader to while it is not on npm (`pnpm pack`,
-// then `npm install` of the tarball into a fresh project), then, inside that project:
-//   1. typechecks every ts sample of README.md and docs/*.md against the shipped declarations
-//      (strict, NodeNext; test/docs.test.ts runs those samples against src/), and
-//   2. runs the README quickstart with plain `node` (built-in type stripping, Node.js 22.18 or
-//      later) and checks that it prints exactly what its `// prints:` comments say.
+// Follows the README's install steps the way a reader does while the package is not on npm, then
+// checks the docs samples against what got installed:
+//   1. `pnpm pack` in this clone (the last command of the README's clone-and-pack block; the clone
+//      and `pnpm install` before it are already done here);
+//   2. the README's project block, as written (`mkdir my-app && cd my-app`, `npm init -y`,
+//      `npm pkg set type=module`, `npm install ../bounded-authority-client-ts/<tarball>`), run by
+//      `sh -e` in a fresh directory where `bounded-authority-client-ts` names this clone;
+//   3. every docs sample (tools/checked-files.mjs docSamples, the same list test/docs.test.ts
+//      runs) typechecked in that project against the installed declarations;
+//   4. the README quickstart saved as quickstart.ts and run with the README's run block, which
+//      must print exactly what its `// prints:` comments say.
 // Needs the npm registry: the tarball's runtime dependency is installed from it.
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { sampleDocs } from "./checked-files.mjs";
+import { docSamples, fencesOf } from "./checked-files.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const PACKAGE = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+const TARBALL = `${PACKAGE.name.replace(/^@/, "").replace("/", "-")}-${PACKAGE.version}.tgz`;
+// The commands run with this Node.js first on PATH, so `node` in the README is the one running this.
+const env = { ...process.env, PATH: `${dirname(process.execPath)}${delimiter}${process.env.PATH ?? ""}` };
 
 function run(cmd, args, cwd) {
-  const r = spawnSync(cmd, args, { cwd, encoding: "utf8", timeout: 300_000 });
+  const r = spawnSync(cmd, args, { cwd, env, encoding: "utf8", timeout: 300_000 });
   if (r.status !== 0) throw new Error(`${cmd} ${args.join(" ")} failed (exit ${r.status})\n${r.stdout}\n${r.stderr}`);
   return r.stdout;
 }
 
-const fences = (rel) => [...readFileSync(join(ROOT, rel), "utf8").matchAll(/^```ts\n([\s\S]*?)^```$/gm)].map((m) => m[1]);
-const samples = sampleDocs(ROOT).flatMap(fences);
-// The first ts fence of the README is the quickstart.
-const quickstart = fences("README.md")[0];
-if (quickstart === undefined || samples.length < 2) {
-  console.error(`expected the README quickstart and the docs samples, found ${samples.length} ts fences`);
-  process.exit(1);
-}
-const expected = [...quickstart.matchAll(/\/\/ prints: (.*)$/gm)].map((m) => m[1].trimEnd());
-if (!quickstart.includes('from "@bounded-authority/client"') || expected.length === 0) {
-  console.error("the quickstart must import @bounded-authority/client and state its output in // prints: comments");
-  process.exit(1);
-}
+const readme = fencesOf(readFileSync(join(ROOT, "README.md"), "utf8"));
+const block = (needle) => {
+  const found = readme.filter((f) => f.lang === "bash" && f.code.includes(needle));
+  if (found.length !== 1) throw new Error(`README.md needs exactly one bash block with "${needle}", found ${found.length}`);
+  return found[0].code;
+};
+const samples = docSamples(ROOT);
+const quickstart = samples.find((s) => s.doc === "README.md");
 
 const work = mkdtempSync(join(tmpdir(), "client-install-"));
+const tarballInClone = join(ROOT, TARBALL);
+const tarballExisted = existsSync(tarballInClone);
 try {
-  run("pnpm", ["pack", "--pack-destination", work], ROOT);
-  const tarball = readdirSync(work).find((f) => f.endsWith(".tgz"));
-  if (tarball === undefined) throw new Error("pnpm pack wrote no tarball");
-  console.log(`packed ${tarball}`);
+  const cloneBlock = block("pnpm pack");
+  if (!/^pnpm pack\b/m.test(cloneBlock)) throw new Error("the clone block does not run pnpm pack");
+  if (!cloneBlock.includes(TARBALL)) throw new Error(`the clone block does not name ${TARBALL}`);
+  const projectBlock = block("npm init -y");
+  const runBlock = block("node quickstart.ts");
+  if (quickstart === undefined) throw new Error("README.md has no ts sample");
+  const expected = [...quickstart.code.matchAll(/\/\/ prints: (.*)$/gm)].map((m) => m[1].trimEnd());
+  if (expected.length === 0) throw new Error("the quickstart states no // prints: output");
 
-  const app = join(work, "app");
-  mkdirSync(app);
-  writeFileSync(join(app, "package.json"), JSON.stringify({ name: "install-check", private: true, type: "module" }));
-  run("npm", ["install", "--no-audit", "--no-fund", join(work, tarball)], app);
-  writeFileSync(join(app, "quickstart.ts"), quickstart);
-  const files = ["quickstart.ts"];
-  samples.slice(1).forEach((code, i) => {
-    files.push(`sample-${i + 1}.ts`);
-    writeFileSync(join(app, `sample-${i + 1}.ts`), code);
+  run("pnpm", ["pack"], ROOT);
+  if (!existsSync(tarballInClone)) throw new Error(`pnpm pack did not write ${TARBALL}`);
+  console.log(`packed ${TARBALL}`);
+
+  symlinkSync(ROOT, join(work, "bounded-authority-client-ts"), "dir");
+  run("sh", ["-e", "-c", projectBlock], work);
+  const app = join(work, "my-app");
+  const pkg = JSON.parse(readFileSync(join(app, "package.json"), "utf8"));
+  console.log(`README project block: ${pkg.name} ("type": "${pkg.type}") with ${Object.keys(pkg.dependencies ?? {}).join(", ")}`);
+
+  const files = samples.map((s, i) => {
+    const name = i === 0 ? "quickstart.ts" : `sample-${i}.ts`;
+    writeFileSync(join(app, name), s.code);
+    return name;
   });
+  if (samples[0] !== quickstart) throw new Error("the README quickstart must be the first docs sample");
   writeFileSync(
     join(app, "tsconfig.json"),
     JSON.stringify({
@@ -65,18 +81,18 @@ try {
       files,
     }),
   );
-
   run(join(ROOT, "node_modules", ".bin", "tsc"), ["-p", join(app, "tsconfig.json")], app);
   console.log(`${files.length} docs samples typecheck against the installed package`);
 
-  const printed = run(process.execPath, ["quickstart.ts"], app).split("\n").filter((l) => l !== "");
+  const printed = run("sh", ["-e", "-c", runBlock], app).split("\n").filter((l) => l !== "");
   if (JSON.stringify(printed) !== JSON.stringify(expected)) {
     throw new Error(`quickstart printed ${JSON.stringify(printed)}, its comments say ${JSON.stringify(expected)}`);
   }
-  console.log(`quickstart ran against the installed package and printed: ${printed.join(" | ")}`);
+  console.log(`README run block (${process.version}) printed: ${printed.join(" | ")}`);
 } catch (e) {
   console.error(e instanceof Error ? e.message : e);
   process.exitCode = 1;
 } finally {
   rmSync(work, { recursive: true, force: true });
+  if (!tarballExisted) rmSync(tarballInClone, { force: true });
 }

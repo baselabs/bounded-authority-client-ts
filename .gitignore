@@ -5,3 +5,4 @@ dist/
 .kimosabe/
 # pnpm pack output (README install steps)
 *.tgz
+vectors-check.ts

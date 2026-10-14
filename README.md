@@ -40,10 +40,13 @@ holder's signed consent to a child grant delegated from a parent grant.
 ## Install
 
 **Not published yet.** No version is on npm yet (0.1.1 will be the first), so
-`npm install @bounded-authority/client` does not resolve today. Until it does, build the package from source and install the tarball.
+`npm install @bounded-authority/client` does not resolve today. Until it does, build the package
+from source and install the tarball.
 
-You need Node.js 22 or later, git, and pnpm 10 (`corepack enable` provides the pinned
-`pnpm@10.20.0`):
+The library needs Node.js 22 or later. Running the TypeScript quickstart below as a `.ts` file
+needs Node.js 22.18 or later, which runs TypeScript directly; on an older Node.js 22, run it with
+`npx tsx quickstart.ts` instead. Building from source also needs git and pnpm 10: `corepack enable`
+provides the pinned `pnpm@10.20.0`, or install it with `npm install -g pnpm@10.20.0`.
 
 ```bash
 git clone https://github.com/baselabs/bounded-authority-client-ts.git
@@ -52,10 +55,15 @@ pnpm install
 pnpm pack   # builds dist/ and writes bounded-authority-client-0.1.1.tgz
 ```
 
-Then, in your project:
+Then create a project next to the clone and install the tarball. `npm pkg set type=module` makes
+the project an ES module project, which the `import` statements in the samples need (recent npm
+versions write `"type": "commonjs"` in `npm init -y`):
 
 ```bash
-npm install /path/to/bounded-authority-client-ts/bounded-authority-client-0.1.1.tgz
+mkdir my-app && cd my-app
+npm init -y
+npm pkg set type=module
+npm install ../bounded-authority-client-ts/bounded-authority-client-0.1.1.tgz
 ```
 
 The package has one runtime dependency, the published
@@ -65,6 +73,37 @@ base64url, so this package does not reimplement them.
 
 ## Quickstart
 
+Save this as `quickstart.ts` in `my-app` and run it:
+
+```bash
+node quickstart.ts
+```
+
+```ts
+import { reauthorizationRequestDigest } from "@bounded-authority/client";
+
+const digest = reauthorizationRequestDigest({
+  parent: { jti: "parent-grant-01", contractMajor: 2, holderThumbprint: "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8" },
+  invocationId: "5b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c51",
+  consumerId: "demo-assistant",
+  child: {
+    holderThumbprint: "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+    audiences: ["https://docs.example"],
+    operations: [{ name: "docs.read", selectors: [{ kind: "equals", path: ["folder"], value: "reports" }] }],
+    notBefore: 1800000060,
+    expiresAt: 1800000600,
+  },
+});
+console.log(digest.ok && digest.value.requestSha256); // prints: FKmF9ldm6KArDo9XtU3-gJrpcjqcQRabFJlqCbjTI3c
+```
+
+It prints the digest of a request for a child grant that may read the `reports` folder of a
+document service for nine minutes, with a new holder key. The value is the `request_sha256` of the
+`child-without-policy` vector, computed independently of this package. Put that value in `cast_arguments.request_sha256` of the holder's
+v2 proof for operation `authority.grants.reauthorize`.
+
+## A full request
+
 A holder wants to hand a narrower data-export grant to a new key: at most 500 rows of the
 `inventory` dataset as CSV, for five minutes. The client parses the child as the request body will
 carry it, fills in anything inherited from the parent, and computes the digest.
@@ -73,7 +112,8 @@ carry it, fills in anything inherited from the parent, and computes the digest.
 import { childFromWireText, materializeChild, reauthorizationRequestDigest } from "@bounded-authority/client";
 import type { ParentContext } from "@bounded-authority/client";
 
-// The parent grant the child is delegated from, as the holder knows it.
+// The parent grant the child is delegated from. parentContextFromGrant(parentGrantCompact)
+// reads these values from the grant itself (see the guides); here they are written out.
 const parent: ParentContext = {
   jti: "parent-grant-01",
   contractMajor: 2,
@@ -139,9 +179,10 @@ shows how. The digest is not JCS of the request body: always use the projection.
 | [Changelog](CHANGELOG.md) | What each version contains. |
 
 Every TypeScript sample in this README and in `docs/` runs in `pnpm test` (`test/docs.test.ts`), and
-each `// prints:` comment is checked against what the sample prints. `pnpm check:install` installs
-the packed tarball the way [Install](#install) describes, typechecks every sample against it, and
-runs the quickstart there.
+each `// prints:` comment is checked against what the sample prints. `pnpm check:install` runs the
+[Install](#install) commands as written (pack, `npm init -y`, `npm pkg set type=module`, install the
+tarball), typechecks every sample against the installed package, and runs the quickstart with
+`node quickstart.ts`.
 
 ## Conformance evidence
 
@@ -172,8 +213,8 @@ pnpm test              # vectors, byte pins, properties, refusals, guard, docs s
 pnpm test:exhaustive   # every Unicode scalar value, about 30 seconds
 pnpm test:mutations    # each rule broken in turn; a named test must fail
 pnpm check:pack        # the packed file list: dist/ present, no source, tests, or maps
-pnpm check:dist        # the vectors against the built dist/
-pnpm check:install     # docs samples against the installed tarball (needs the npm registry)
+pnpm check:dist        # the vectors, and the guide's vectors sample, against the built dist/
+pnpm check:install     # the Install steps as written, then the docs samples (needs the npm registry)
 pnpm test:browser      # needs Playwright browsers: pnpm exec playwright install chromium firefox webkit
 ```
 

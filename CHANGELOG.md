@@ -38,6 +38,17 @@ The first version intended for npm: everything in 0.1.0, plus the changes below.
   each value against its canonical-JSON limits up front, and the text is read by a strict JSON
   reader with no whole-document limit. `test/parity.test.ts` checks that both accept and refuse
   alike, at each limit and over generated children.
+- **Fixed: the README quickstart failed on Node.js 24.** npm 11's `npm init -y` writes
+  `"type": "commonjs"`, so `node quickstart.ts` refused the `import` statements. The Install
+  section now creates the project with `npm init -y` and `npm pkg set type=module`, gives the
+  run command, and states the minimums: Node.js 22 for the library, 22.18 to run a `.ts` file
+  directly (or `npx tsx`), and a way to get pnpm without corepack. `pnpm check:install` now runs
+  those README commands as written instead of writing its own `package.json`. The README opens
+  with a short quickstart (one call, one vector) before the full request.
+- `test/docs.test.ts` and `pnpm check:install` take their samples from one extractor and assert
+  they collect the same ones; a JavaScript or TypeScript fence in any other language fails the
+  docs test. `pnpm check:dist` also runs the guide's vectors sample from the clone root, as the
+  guide now describes (after `pnpm build`).
 - The browser lane closes its local server when a browser fails to launch, so a missing browser
   build fails the lane instead of hanging it.
 - `docs/req2-projection.md`: the examples table now matches the vectors, and the epoch-second

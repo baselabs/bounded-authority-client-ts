@@ -1,15 +1,15 @@
 // The documentation runs as written. Every ```ts fence in README.md and docs/*.md is executed
 // against src/ (its "@bounded-authority/client" import is pointed at src/index.ts), and every
 // `// prints: <text>` comment in a sample must equal, in order, the lines the sample logs.
-// Every relative link and its #anchor must resolve. tools/check-install.mjs runs the README
-// quickstart again against the packed tarball installed the way a reader installs it.
+// Every relative link and its #anchor must resolve. tools/check-install.mjs typechecks the same
+// samples against the packed tarball installed the way the README says, and runs the quickstart.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { format } from "node:util";
-import { checkedDocs } from "../tools/checked-files.mjs";
+import { CODE_LANGUAGE, SAMPLE_LANGUAGES, checkedDocs, docSamples, fencesOf, samplesOf } from "../tools/checked-files.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const PACKAGE = "@bounded-authority/client";
@@ -19,42 +19,31 @@ const WORK = join(ROOT, "node_modules", ".cache", "doc-samples");
 
 const DOCS = checkedDocs(ROOT);
 
-export interface Sample {
-  readonly doc: string;
-  readonly line: number;
-  readonly code: string;
-}
-
-/** Every ```ts (or ```typescript) fence in a Markdown text. */
-export function extractSamples(doc: string, markdown: string): Sample[] {
-  const out: Sample[] = [];
-  const lines = markdown.split("\n");
-  for (let i = 0; i < lines.length; i++) {
-    if (!/^```(ts|typescript)\s*$/.test(lines[i]!)) continue;
-    const start = i + 1;
-    let end = start;
-    while (end < lines.length && !/^```\s*$/.test(lines[end]!)) end++;
-    out.push({ doc, line: start, code: lines.slice(start, end).join("\n") });
-    i = end;
-  }
-  return out;
-}
-
 /** The `// prints: <text>` comments of a sample, in order. */
 export const expectedOutput = (code: string): string[] =>
   [...code.matchAll(/\/\/ prints: (.*)$/gm)].map((m) => m[1]!.trimEnd());
 
 const read = (rel: string): string => readFileSync(join(ROOT, rel), "utf8");
-const samples = DOCS.flatMap((doc) => extractSamples(doc, read(doc)));
+const samples = DOCS.flatMap((doc) => samplesOf(doc, read(doc)));
 
 test("docs: the scan finds the samples (a scan of zero samples is a vacuous pass)", () => {
   assert.ok(samples.some((s) => s.doc === "README.md"), "README.md has a ts sample");
   assert.ok(samples.some((s) => s.doc === "docs/api.md"), "docs/api.md has ts samples");
   assert.ok(samples.some((s) => s.doc === "docs/guides.md"), "docs/guides.md has ts samples");
   // Known-positive probe of the extractor and the prints parser.
-  const probe = extractSamples("probe", "x\n```ts\nconsole.log(1); // prints: 1\n```\n```bash\nls\n```\n");
-  assert.deepEqual(probe.map((s) => s.code), ["console.log(1); // prints: 1"]);
+  const probe = samplesOf("probe", "x\n```ts\nconsole.log(1); // prints: 1\n```\n```bash\nls\n```\n```typescript\n2\n```\n");
+  assert.deepEqual(probe.map((s) => [s.line, s.code]), [[3, "console.log(1); // prints: 1"], [9, "2"]]);
   assert.deepEqual(expectedOutput(probe[0]!.code), ["1"]);
+});
+
+test("docs: this test and tools/check-install.mjs collect the same samples, and no code fence escapes them", () => {
+  // check-install typechecks docSamples(); this test runs the samples of every checked document.
+  assert.deepEqual(docSamples(ROOT), samples);
+  const escaped = DOCS.flatMap((doc) =>
+    fencesOf(read(doc)).filter((f) => CODE_LANGUAGE.test(f.lang) && !SAMPLE_LANGUAGES.includes(f.lang)).map((f) => `${doc}:${f.line} (${f.lang})`),
+  );
+  assert.deepEqual(escaped, [], "a JavaScript or TypeScript fence in a language the checks do not run");
+  assert.ok(CODE_LANGUAGE.test("js") && !CODE_LANGUAGE.test("bash") && !CODE_LANGUAGE.test("text"), "known-positive probe");
 });
 
 for (const sample of samples) {

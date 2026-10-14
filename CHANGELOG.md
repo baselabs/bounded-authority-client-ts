@@ -17,8 +17,10 @@ The first version intended for npm: everything in 0.1.0, plus the changes below.
   it. `pnpm check:pack` also requires `docs/api.md` and `docs/guides.md` in the package.
 - CI's push filter still skips pushes that change only Markdown no check reads, but a change to a
   file a check reads (`README.md`, `CHANGELOG.md`, `docs/`, `test/browser/README.md`, `LICENSE`)
-  now runs CI. The checks take their file lists from `tools/checked-files.mjs`, and
-  `test/ci-paths.test.ts` fails if the filter excludes any of those files.
+  now runs CI. The checks take their file lists from `tools/checked-files.mjs`.
+  `test/ci-paths.test.ts` reads the workflow with a YAML parser (new dev dependency `yaml`) and
+  fails unless every tracked file other than unread Markdown, and every file a check reads, runs
+  CI under GitHub's documented filter rules.
 - The release workflow's verify job also runs `pnpm check:install`, and its comments describe
   the release process without internal wording.
 - **New: `parentContextFromGrant`** reads the parent context (`jti`, holder thumbprint,

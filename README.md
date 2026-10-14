@@ -36,8 +36,8 @@ holder's signed consent to a child grant delegated from a parent grant.
 
 ## Install
 
-**Not published yet.** Version 0.1.0 is not on npm, so `npm install @bounded-authority/client`
-does not resolve today. Until it does, build the package from source and install the tarball.
+**Not published yet.** No version is on npm yet (0.1.1 will be the first), so
+`npm install @bounded-authority/client` does not resolve today. Until it does, build the package from source and install the tarball.
 
 You need Node.js 22 or later, git, and pnpm 10 (`corepack enable` provides the pinned
 `pnpm@10.20.0`):
@@ -46,13 +46,13 @@ You need Node.js 22 or later, git, and pnpm 10 (`corepack enable` provides the p
 git clone https://github.com/baselabs/bounded-authority-client-ts.git
 cd bounded-authority-client-ts
 pnpm install
-pnpm pack   # builds dist/ and writes bounded-authority-client-0.1.0.tgz
+pnpm pack   # builds dist/ and writes bounded-authority-client-0.1.1.tgz
 ```
 
 Then, in your project:
 
 ```bash
-npm install /path/to/bounded-authority-client-ts/bounded-authority-client-0.1.0.tgz
+npm install /path/to/bounded-authority-client-ts/bounded-authority-client-0.1.1.tgz
 ```
 
 The package has one runtime dependency, the published

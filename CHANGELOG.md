@@ -1,9 +1,8 @@
 # Changelog
 
-## [Unreleased]
+## [0.1.1] - not yet published
 
-Documentation and documentation checks after the `v0.1.0` tag. No change to `src/` or to the
-package's behavior.
+The first version intended for npm: everything in 0.1.0, plus the changes below.
 
 - README rewritten: what the package is, why to use it, what it is not, how to install it from
   source while it is not on npm, and a quickstart that prints the `lte-child` vector's
@@ -28,10 +27,10 @@ package's behavior.
   range is stated.
 - `package.json`: keywords, and a plainer description.
 
-## [0.1.0] - not yet published
+## [0.1.0] - never published
 
-Tagged `v0.1.0`; not yet published to npm. The first slice of the TypeScript client for a bounded
-authority service.
+Tagged `v0.1.0`, but never published to npm: the release workflow's staged publish failed, and
+0.1.1 replaces it as the first version for npm. It contained:
 
 - **REQ-2 reauthorization request digest.** `reauthorizationRequestDigest` computes the REQ-2
   projection (ten framed fields, bytes as specified in `docs/req2-projection.md`) and its
@@ -63,5 +62,5 @@ authority service.
 - A property over Unicode scalar values (`test/unicode.test.ts`) and an exhaustive sweep of all
   1,112,064 scalar values (`pnpm test:exhaustive`) pass. Verifier 0.5.0 failed the property on
   U+100000 (`test/browser/README.md`).
-- Runtime dependency: `@bounded-authority-protocol/verifier` `^0.7.0` (one owner for canonical
-  JSON, SHA-256, and base64url).
+- Runtime dependency: `@bounded-authority-protocol/verifier` `^0.7.0`, which supplies canonical
+  JSON, SHA-256, and base64url.

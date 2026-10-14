@@ -1,6 +1,6 @@
 # API reference
 
-`@bounded-authority/client` 0.1.0 exports four functions and the types they take and return. The
+`@bounded-authority/client` 0.1.1 exports four functions and the types they take and return. The
 byte layout they implement is specified in [`req2-projection.md`](req2-projection.md); the tasks
 they serve are in the [guides](guides.md).
 

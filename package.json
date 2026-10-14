@@ -1,6 +1,6 @@
 {
   "name": "@bounded-authority/client",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "TypeScript helpers for clients of a bounded authority service: the wire contract, contract cases, and vectors a client needs. This release computes the REQ-2 reauthorization request digest.",
   "keywords": [
     "bounded-authority",

@@ -3,8 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
+    # Markdown is not ignored: the README and docs/ samples run in pnpm test and check:install.
     paths-ignore:
-      - "**/*.md"
       - "LICENSE*"
   pull_request:
 
@@ -62,6 +62,11 @@ jobs:
 
       - name: Vectors against dist/ (the code a consumer receives)
         run: pnpm check:dist
+
+      # The README's install path while the package is not on npm: pack, install the tarball into a
+      # fresh project, typecheck and run the quickstart there.
+      - name: README quickstart against the installed tarball
+        run: pnpm check:install
 
   browser:
     # The vectors in real engines through Playwright under a strict CSP, with the client bundled by esbuild

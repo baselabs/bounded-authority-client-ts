@@ -64,8 +64,8 @@ The projection is these ten fields, each wrapped in `F(...)`, concatenated in th
 | 5 | child `holder_thumbprint` | canonical unpadded base64url of exactly 32 bytes |
 | 6 | audiences | `L(audiences)` |
 | 7 | operations | `L(encoded_operations)` |
-| 8 | child `not_before` | epoch seconds, ASCII decimal |
-| 9 | child `expires_at` | epoch seconds, ASCII decimal |
+| 8 | child `not_before` | epoch seconds (an integer from 0 to 2^53 - 1), ASCII decimal |
+| 9 | child `expires_at` | epoch seconds (an integer from 0 to 2^53 - 1), ASCII decimal |
 | 10 | cumulative policy | the encoded policy, or the four ASCII bytes `null` |
 
 ## Ordering, sorting, deduplication
@@ -220,9 +220,13 @@ sign consent to:
 | Action | Operation | Selectors | Policy |
 |---|---|---|---|
 | Read documents | `docs.read` | `equals` on `folder` | none |
-| Approve a deployment | `deploy.release` | `one_of` on `stage` | none |
-| Export data | `data.export` | `lte` on `row_count` | `max_count` per window (full policy in one vector) |
-| Schedule a meeting | `calendar.schedule` | `lte` on `duration_minutes` | none |
-| Set a device temperature | `device.set_temperature` | `gte` and `lte` on `celsius` | none |
+| Approve a deployment | `deploy.release` | `equals` on `service`, `one_of` on `stage` | none |
+| Export data | `data.export` | `lte` on `row_count`, `equals` on `format` and `dataset` | none, or every policy member (`max_count`, `max_sum` on `row_count`, `max_distinct` on `dataset`) |
+| Schedule a meeting | `calendar.schedule` | `lte` on `duration_minutes`, `one_of` on `calendar` | none |
+| Set a device temperature | `device.set_temperature` | `gte` and `lte` on `celsius`, `equals` on `device` | none |
 | Send messages | `messages.send` | `equals` on `channel` | `max_count` per window |
 | Transfer money (one example) | `payments.transfer` | `equals` on `currency`, `lte` on `amount` | `max_sum` on `amount` |
+
+The remaining vectors exercise one rule each (null inheritance, sort and dedup, Unicode byte order,
+integers near 2^53, `one_of` value order, path order), with these operations and a few
+placeholder names such as `b` and `z`.

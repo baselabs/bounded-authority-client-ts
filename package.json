@@ -1,7 +1,17 @@
 {
   "name": "@bounded-authority/client",
   "version": "0.1.0",
-  "description": "TypeScript client SDK for the bounded authority service: the wire contract, contract cases, and vectors a client needs. This release carries the REQ-2 reauthorization request digest helper.",
+  "description": "TypeScript helpers for clients of a bounded authority service: the wire contract, contract cases, and vectors a client needs. This release computes the REQ-2 reauthorization request digest.",
+  "keywords": [
+    "bounded-authority",
+    "authorization",
+    "delegation",
+    "capability",
+    "proof-of-possession",
+    "reauthorization",
+    "canonical-json",
+    "digest"
+  ],
   "license": "Apache-2.0",
   "type": "module",
   "sideEffects": false,
@@ -42,7 +52,8 @@
     "test:exhaustive": "node --test --import tsx/esm test/unicode-exhaustive.ts",
     "test:mutations": "node tools/mutation-proofs.mjs",
     "check:dist": "node tools/check-dist.mjs",
-    "check:pack": "node tools/check-pack.mjs"
+    "check:pack": "node tools/check-pack.mjs",
+    "check:install": "node tools/check-install.mjs"
   },
   "dependencies": {
     "@bounded-authority-protocol/verifier": "^0.7.0"

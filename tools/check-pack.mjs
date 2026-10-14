@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Proves a clean publish ships code: `npm pack --dry-run` runs the prepack script (which builds
 // dist/), and the file list it reports must contain the compiled entry point and declarations,
-// the license files, and the contract document, and none of the source, tests, tools, or maps.
+// the license files, and the documents under docs/, and none of the source, tests, tools, or maps.
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -17,7 +17,7 @@ const packed = JSON.parse(r.stdout.slice(start))[0];
 const files = packed.files.map((f) => f.path);
 
 const required = [
-  "package.json", "LICENSE", "NOTICE", "README.md", "docs/req2-projection.md",
+  "package.json", "LICENSE", "NOTICE", "README.md", "docs/req2-projection.md", "docs/api.md", "docs/guides.md",
   "dist/src/index.js", "dist/src/index.d.ts", "dist/src/boundary.js", "dist/src/projection.js",
 ];
 const forbidden = [/^src\//, /^test\//, /^tools\//, /^\.github\//, /\.map$/, /^pnpm-lock/, /^tsconfig/];

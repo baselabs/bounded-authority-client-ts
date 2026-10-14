@@ -1,8 +1,30 @@
 # Changelog
 
-## [0.1.0] - 2026-10-14
+## [Unreleased]
 
-First slice of the TypeScript client SDK for the bounded authority service. Unpublished.
+Documentation and documentation checks after the `v0.1.0` tag. No change to `src/` or to the
+package's behavior.
+
+- README rewritten: what the package is, why to use it, what it is not, how to install it from
+  source while it is not on npm, and a quickstart that prints the `lte-child` vector's
+  `request_sha256`.
+- New `docs/api.md` (every export, with parameters, return values, refusals, and a runnable
+  example) and `docs/guides.md` (where the inputs come from, binding the digest into a v2 proof,
+  inheritance, handling a refusal, testing against the vectors, browsers).
+- `test/docs.test.ts` (part of `pnpm test`) runs every TypeScript sample in the README and `docs/`,
+  checks each `// prints:` comment against the output, and checks every relative link and anchor.
+- `pnpm check:install` packs the package, installs the tarball into a fresh project, typechecks
+  every docs sample against the installed declarations, and runs the quickstart there. CI runs
+  it, and no longer skips pushes that change only Markdown. `pnpm check:pack` also requires
+  `docs/api.md` and `docs/guides.md` in the package.
+- `docs/req2-projection.md`: the examples table now matches the vectors, and the epoch-second
+  range is stated.
+- `package.json`: keywords, and a plainer description.
+
+## [0.1.0] - not yet published
+
+Tagged `v0.1.0`; not yet published to npm. The first slice of the TypeScript client for a bounded
+authority service.
 
 - **REQ-2 reauthorization request digest.** `reauthorizationRequestDigest` computes the REQ-2
   projection (ten framed fields, bytes as specified in `docs/req2-projection.md`) and its

@@ -1,5 +1,7 @@
 node_modules/
 dist/
 
-# Kimosabe local process state (family convention: never tracked)
+# Local tool state (never tracked)
 .kimosabe/
+# pnpm pack output (README install steps)
+*.tgz

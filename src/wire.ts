@@ -1,6 +1,6 @@
 // The JSON body spelling of a child (snake_case members), mapped onto the typed camelCase form.
 // The mapping is closed: a member outside the table, in either spelling, is refused.
-import { fail, utf8Str } from "@bounded-authority-protocol/verifier";
+import { base64urlDecode, fail, jsonDecode, utf8Str } from "@bounded-authority-protocol/verifier";
 import type { Tagged } from "@bounded-authority-protocol/verifier";
 import { WireFloat, readMember as read, recordOf as record } from "./boundary.js";
 
@@ -62,4 +62,34 @@ export function fromTagged(t: Tagged): unknown {
     case "object":
       return Object.fromEntries([...t.v].map(([k, v]) => [k, fromTagged(v)]));
   }
+}
+
+/** A tagged JSON value as a plain value; both numeric tags become numbers. */
+function plainJson(t: Tagged): unknown {
+  switch (t.t) {
+    case "null":
+      return null;
+    case "bool":
+    case "int":
+    case "float":
+      return t.v;
+    case "string":
+      return utf8Str(t.v);
+    case "array":
+      return t.v.map(plainJson);
+    case "object":
+      return Object.fromEntries([...t.v].map(([k, v]) => [k, plainJson(v)]));
+  }
+}
+
+/**
+ * The `operations` claim of a compact grant whose structure `v2.decodeGrant` has already checked,
+ * as plain values for the parent parser.
+ */
+export function grantOperations(compact: Uint8Array): unknown {
+  const segments = new TextDecoder("ascii").decode(compact).split(".");
+  const payload = jsonDecode(base64urlDecode(new TextEncoder().encode(segments[1] ?? "")));
+  if (payload.t !== "object") return fail("grant payload is not an object");
+  const operations = payload.v.get("operations");
+  return operations === undefined ? fail("grant has no operations") : plainJson(operations);
 }

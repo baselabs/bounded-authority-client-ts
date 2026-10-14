@@ -1,6 +1,6 @@
 # API reference
 
-`@bounded-authority/client` 0.1.1 exports four functions and the types they take and return. The
+`@bounded-authority/client` 0.1.1 exports five functions and the types they take and return. The
 byte layout they implement is specified in [`req2-projection.md`](req2-projection.md); the tasks
 they serve are in the [guides](guides.md).
 
@@ -8,10 +8,11 @@ they serve are in the [guides](guides.md).
 |---|---|---|
 | [`childFromWire`](#childfromwire) | function | Parse an already-parsed `body.child` (snake_case) into a `RequestedChild`. |
 | [`childFromWireText`](#childfromwiretext) | function | The same from the JSON text, which also refuses duplicate member names and integer fields spelled `2500.0`, `1E2`, or `-0.0`. |
+| [`parentContextFromGrant`](#parentcontextfromgrant) | function | Read the parent context (identity, audiences, operations, validity window) from the compact v2 parent grant. |
 | [`materializeChild`](#materializechild) | function | Fill a child's `null` members from the parent's exact values. |
 | [`reauthorizationRequestDigest`](#reauthorizationrequestdigest) | function | Compute the REQ-2 projection bytes and `requestSha256`. |
 | [`Result`](#result-and-the-closed-error) | type | The return type of every function. |
-| [Input and output types](#types) | types | `RequestedChild`, `MaterializedChild`, `ParentIdentity`, `ParentContext`, `ReauthorizationDigestInput`, `ReauthorizationDigest`, `Operation`, `Selector`, `CumulativePolicy`, `JsonValue`. |
+| [Input and output types](#types) | types | `RequestedChild`, `MaterializedChild`, `ParentIdentity`, `ParentContext`, `ParentOperation`, `ParentSelector`, `ReauthorizationDigestInput`, `ReauthorizationDigest`, `Operation`, `Selector`, `CumulativePolicy`, `JsonValue`. |
 
 Every sample on this page runs in `pnpm test` (`test/docs.test.ts`), and each `// prints:` comment
 is what the sample prints.
@@ -121,6 +122,49 @@ console.log(childFromWireText(duplicate).ok); // prints: false
 console.log(childFromWire(JSON.parse(fraction)).ok); // prints: true
 ```
 
+## `parentContextFromGrant`
+
+```text
+function parentContextFromGrant(grantCompact: string): Result<ParentContext>
+```
+
+Reads the [`ParentContext`](#parentcontext) from the compact v2 grant the holder already has: its
+`jti`, `cnf.jkt` (as unpadded base64url), `aud`, `operations`, `nbf`, and `exp` claims, with
+`contractMajor: 2`.
+
+- **`grantCompact`**: the parent grant, as the compact JWS string the service issued.
+- **Returns** `{ ok: true, value: ParentContext }`. The operations keep every selector the grant
+  carries, including the shapes only a parent may have (see [`ParentSelector`](#parentselector)).
+- **Refuses** anything the verifier package's `v2.decodeGrant` refuses (a v1 or v3 grant, a
+  malformed compact, an unknown claim), and a non-string argument.
+
+The grant's structure is checked, its signature is not: when you need to know the grant came from
+your issuer, verify it with the verifier package's `v2.verifyGrant` first.
+
+```ts
+import { parentContextFromGrant } from "@bounded-authority/client";
+
+// A demo v2 grant (signed with a demo issuer key) for data.export with lte and equals selectors.
+const parentGrant = [
+  "eyJhbGciOiJFZERTQSIsImtpZCI6ImRlbW8taXNzdWVyLWtleS0xIiwidHlwIjoiYmErY2FwIn0.eyJhdWQiOlsiaHR0cHM6",
+  "Ly9kYXRhLmV4YW1wbGUiXSwiY25mIjp7ImprdCI6IkFBRUNBd1FGQmdjSUNRb0xEQTBPRHhBUkVoTVVGUllYR0JrYUd4d2RI",
+  "aDgifSwiZXhwIjoxODAwMDAzNjAwLCJpYXQiOjE3OTk5OTk5OTAsImlzcyI6Imh0dHBzOi8vaXNzdWVyLmV4YW1wbGUiLCJq",
+  "dGkiOiJwYXJlbnQtZ3JhbnQtMDEiLCJuYmYiOjE4MDAwMDAwMDAsIm9wZXJhdGlvbnMiOlt7Im5hbWUiOiJkYXRhLmV4cG9y",
+  "dCIsInNlbGVjdG9ycyI6W3sia2luZCI6Imx0ZSIsInBhdGgiOlsicm93X2NvdW50Il0sInZhbHVlIjoxMDAwMH0seyJraW5k",
+  "IjoiZXF1YWxzIiwicGF0aCI6WyJmb3JtYXQiXSwidmFsdWUiOiJjc3YifV19XSwidiI6Mn0.lVEYkefNdCUy6s1BYqpYBMkb",
+  "rqfUYBE1XPnh5XSogSfJ6lwn8xNX5FU9ryXrFAu0nFf8Qi9XnmDVE0HlQbkrBw",
+].join("");
+
+const parent = parentContextFromGrant(parentGrant);
+if (parent.ok) {
+  console.log(parent.value.jti, parent.value.contractMajor, parent.value.audiences); // prints: parent-grant-01 2 [ 'https://data.example' ]
+  console.log(JSON.stringify(parent.value.operations)); // prints: [{"name":"data.export","selectors":[{"kind":"lte","path":["row_count"],"value":10000},{"kind":"equals","path":["format"],"value":"csv"}]}]
+}
+
+// A grant that is not a compact v2 grant is refused.
+console.log(parentContextFromGrant("not.a.grant").ok); // prints: false
+```
+
 ## `materializeChild`
 
 ```text
@@ -139,6 +183,12 @@ inherited: a child policy is carried through, and a parent has none in its conte
 - **Refuses** a child holder thumbprint equal to the parent's, a parent `contractMajor` other than
   `2`, and any invalid member of either argument. The parent's values are checked even when the
   child does not inherit them.
+
+The parent's operations follow the v2 grant rules, not the child rules: a parent may carry every
+selector a v2 grant accepts (see [`ParentSelector`](#parentselector)). When the child inherits
+them (`operations: null`), each inherited selector must also be one a child could send: an `all`
+selector is inherited as a plain `{ kind: "all" }` (its inert members carry no authority), and a
+fractional `lte` or `gte` bound is refused, because REQ-2 bounds are integers.
 
 This function does not check that the child is narrower than the parent. The service decides
 whether to issue the child.
@@ -269,8 +319,27 @@ The child after inheritance: the same members as `RequestedChild`, none of them 
 ### `ParentContext`
 
 `ParentIdentity` plus the values a child inherits: `audiences: string[]`,
-`operations: Operation[]`, `notBefore: number`, and `expiresAt: number`, with the same rules as in
-`RequestedChild` (never `null`).
+`operations: ParentOperation[]`, `notBefore: number`, and `expiresAt: number`, with the same
+rules as in `RequestedChild` (never `null`) except for the selectors. `parentContextFromGrant`
+returns one.
+
+### `ParentOperation`
+
+`{ name: string, selectors: ParentSelector[] }`: an operation of a v2 grant, with the same name,
+count, and uniqueness rules as [`Operation`](#operation).
+
+### `ParentSelector`
+
+Every [`Selector`](#selector), plus the two selector shapes a v2 grant accepts and a child does not
+send:
+
+| Shape | Meaning |
+|---|---|
+| `{ kind: "all", path, value }` or `{ kind: "all", path, values }` | An `all` selector with inert members: any JSON values, which carry no authority. |
+| `{ kind: "lte" \| "gte", path, value }` with a fractional `value` | A numeric bound, integral or not, within -(2^53 - 1) to 2^53 - 1. |
+
+The verifier package's `v2.parseSelector` decides which parent selectors are accepted, so a parent
+selector is accepted exactly when a v2 grant may carry it.
 
 ### `ReauthorizationDigestInput`
 

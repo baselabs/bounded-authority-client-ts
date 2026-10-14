@@ -1,8 +1,9 @@
 // Parse at the boundary: every value that enters the package is checked here, once, into a typed
 // copy. Everything unknown, malformed, or out of range throws InvalidError, which the public
 // functions turn into the single closed error. Nothing here is lenient.
-import { base64urlDecode, fail, MAXIMA } from "@bounded-authority-protocol/verifier";
+import { base64urlDecode, fail, MAXIMA, v2 } from "@bounded-authority-protocol/verifier";
 import { utf8 } from "./bytes.js";
+import { tagged } from "./projection.js";
 import type {
   CumulativePolicy,
   JsonValue,
@@ -10,6 +11,8 @@ import type {
   Operation,
   ParentContext,
   ParentIdentity,
+  ParentOperation,
+  ParentSelector,
   RequestedChild,
   Selector,
 } from "./types.js";
@@ -308,13 +311,52 @@ export function parseParentIdentity(u: unknown): ParentIdentity {
   return parseIdentityFields(r);
 }
 
+// ---- parent operations ----------------------------------------------------------------------
+
+/**
+ * A parent selector is accepted exactly when the v2 wire profile accepts it (spec/bap-v2.md §4):
+ * the verifier package's own v2 selector parser decides, on the selector's tagged JSON form.
+ */
+function parseParentSelector(u: unknown): ParentSelector {
+  const r = record(u);
+  closedKeys(r, ["kind"], ["path", "value", "values"]);
+  const copy: Record<string, JsonValue> = {};
+  for (const k of ["kind", "path", "value", "values"]) if (has(r, k)) copy[k] = parseJson(read(r, k), 0);
+  v2.parseSelector(tagged(copy));
+  return copy as ParentSelector;
+}
+
+function parseParentOperations(u: unknown): ParentOperation[] {
+  const operations = nonEmptyArray(u, MAX_OPERATIONS).map((o): ParentOperation => {
+    const r = record(o);
+    closedKeys(r, ["name", "selectors"]);
+    return {
+      name: identifier(read(r, "name"), MAX_OPERATION_NAME_BYTES),
+      selectors: nonEmptyArray(read(r, "selectors"), MAX_SELECTORS).map(parseParentSelector),
+    };
+  });
+  if (new Set(operations.map((o) => o.name)).size !== operations.length) fail("duplicate operation name");
+  return operations;
+}
+
+/**
+ * The parent's operations as a child inherits them. An `all` selector's inert members carry no
+ * authority, so an inherited `all` is a plain `all`; every other selector must then satisfy the
+ * child rules, so an inherited fractional bound is refused (REQ-2 bounds are integers).
+ */
+export function inheritOperations(operations: readonly ParentOperation[]): Operation[] {
+  return parseOperations(
+    operations.map((o) => ({ name: o.name, selectors: o.selectors.map((s) => (s.kind === "all" ? { kind: "all" } : s)) })),
+  );
+}
+
 export function parseParentContext(u: unknown): ParentContext {
   const r = record(u);
   closedKeys(r, ["jti", "contractMajor", "holderThumbprint", "audiences", "operations", "notBefore", "expiresAt"]);
   return {
     ...parseIdentityFields(r),
     audiences: parseAudiences(read(r, "audiences")),
-    operations: parseOperations(read(r, "operations")),
+    operations: parseParentOperations(read(r, "operations")),
     notBefore: parseEpoch(read(r, "notBefore")),
     expiresAt: parseEpoch(read(r, "expiresAt")),
   };

@@ -69,10 +69,27 @@ export interface ParentIdentity {
   readonly holderThumbprint: string;
 }
 
+/**
+ * A selector as a v2 parent grant may carry it (contract major 2, selector algebra): every
+ * child `Selector`, an `all` selector with inert `path` and `value` or `values` members (any JSON
+ * values; they carry no authority), and `lte`/`gte` bounds that are any number within
+ * +/-(2^53 - 1), integral or not.
+ */
+export type ParentSelector =
+  | Selector
+  | { readonly kind: "all"; readonly path: JsonValue; readonly value: JsonValue }
+  | { readonly kind: "all"; readonly path: JsonValue; readonly values: JsonValue };
+
+/** An operation of a v2 parent grant. */
+export interface ParentOperation {
+  readonly name: string;
+  readonly selectors: readonly ParentSelector[];
+}
+
 /** The parent's identity plus the values a child inherits when it sends `null`. */
 export interface ParentContext extends ParentIdentity {
   readonly audiences: readonly string[];
-  readonly operations: readonly Operation[];
+  readonly operations: readonly ParentOperation[];
   readonly notBefore: number;
   readonly expiresAt: number;
 }

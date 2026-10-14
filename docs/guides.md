@@ -19,17 +19,60 @@ holder already has. The digest needs these values:
 
 | Input | Source |
 |---|---|
-| `parent.jti` | The parent grant's `jti` claim (`grantId` in the verifier package's `v2.decodeGrant` and `v2.verifyGrant` results). |
-| `parent.contractMajor` | The parent grant's contract major: `2` for a grant the verifier package's `v2` functions decode. |
-| `parent.holderThumbprint` | The parent grant's `cnf.jkt` claim: unpadded base64url of 32 bytes. The verifier returns the raw bytes as `holderThumbprint`; its `base64urlEncode` turns them into the ASCII bytes of that string (decode those with `TextDecoder`). |
-| `parent.audiences`, `notBefore`, `expiresAt` | The parent grant's `aud`, `nbf`, and `exp` claims (`audiences`, `notBefore`, `expiresAt` in `v2.decodeGrant`). Needed only by `materializeChild`. |
-| `parent.operations` | The parent grant's `operations` claim. Needed only by `materializeChild`. |
+| `parent` (`jti`, `contractMajor`, `holderThumbprint`, `audiences`, `operations`, `notBefore`, `expiresAt`) | The parent grant itself: `parentContextFromGrant(parentGrantCompact)` reads them from its `jti`, `cnf.jkt`, `aud`, `operations`, `nbf`, and `exp` claims. |
 | `child` | The child you are asking for: the `child` member of the request body. |
 | `invocationId` | The request's invocation ID, a canonical lowercase UUID. `crypto.randomUUID()` returns this form. |
 | `consumerId` | The submitting consumer's stable handle, not its credential identifier. |
 
 The parent's audiences, operations, and validity window matter only for members the child sends
-as `null`: see [Inherit values from the parent](#inherit-values-from-the-parent).
+as `null`: see [Inherit values from the parent](#inherit-values-from-the-parent). From the parent
+grant to the digest:
+
+```ts
+import { childFromWireText, materializeChild, parentContextFromGrant, reauthorizationRequestDigest } from "@bounded-authority/client";
+
+// The parent grant the holder already has (a demo v2 grant signed with a demo issuer key).
+const parentGrant = [
+  "eyJhbGciOiJFZERTQSIsImtpZCI6ImRlbW8taXNzdWVyLWtleS0xIiwidHlwIjoiYmErY2FwIn0.eyJhdWQiOlsiaHR0cHM6",
+  "Ly9kYXRhLmV4YW1wbGUiXSwiY25mIjp7ImprdCI6IkFBRUNBd1FGQmdjSUNRb0xEQTBPRHhBUkVoTVVGUllYR0JrYUd4d2RI",
+  "aDgifSwiZXhwIjoxODAwMDAzNjAwLCJpYXQiOjE3OTk5OTk5OTAsImlzcyI6Imh0dHBzOi8vaXNzdWVyLmV4YW1wbGUiLCJq",
+  "dGkiOiJwYXJlbnQtZ3JhbnQtMDEiLCJuYmYiOjE4MDAwMDAwMDAsIm9wZXJhdGlvbnMiOlt7Im5hbWUiOiJkYXRhLmV4cG9y",
+  "dCIsInNlbGVjdG9ycyI6W3sia2luZCI6Imx0ZSIsInBhdGgiOlsicm93X2NvdW50Il0sInZhbHVlIjoxMDAwMH0seyJraW5k",
+  "IjoiZXF1YWxzIiwicGF0aCI6WyJmb3JtYXQiXSwidmFsdWUiOiJjc3YifV19XSwidiI6Mn0.lVEYkefNdCUy6s1BYqpYBMkb",
+  "rqfUYBE1XPnh5XSogSfJ6lwn8xNX5FU9ryXrFAu0nFf8Qi9XnmDVE0HlQbkrBw",
+].join("");
+
+const parent = parentContextFromGrant(parentGrant);
+if (!parent.ok) throw new Error("not a v2 grant");
+
+// The child narrows the parent: 500 rows of one dataset; it inherits the audiences and window.
+const requested = childFromWireText(`{
+  "holder_thumbprint": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+  "audiences": null,
+  "operations": [{ "name": "data.export", "selectors": [
+    { "kind": "lte", "path": ["row_count"], "value": 500 },
+    { "kind": "equals", "path": ["format"], "value": "csv" },
+    { "kind": "equals", "path": ["dataset"], "value": "inventory" }
+  ] }],
+  "not_before": null,
+  "expires_at": 1800000300
+}`);
+if (!requested.ok) throw new Error("the child was refused");
+
+const child = materializeChild(requested.value, parent.value);
+if (!child.ok) throw new Error("the child was refused");
+
+const digest = reauthorizationRequestDigest({
+  parent: { jti: parent.value.jti, contractMajor: parent.value.contractMajor, holderThumbprint: parent.value.holderThumbprint },
+  invocationId: "5b1f2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+  consumerId: "demo-agent",
+  child: child.value,
+});
+console.log(digest.ok && digest.value.requestSha256); // prints: ZEJZyH3UFj_kT81x2WOW-gcPLBOSqtOFqBKsbTT-VO4
+```
+
+The child inherits `https://data.example` and `not_before` 1800000000 from the grant, so this is
+the `lte-child` vector again.
 
 ## Bind the digest into a v2 proof
 

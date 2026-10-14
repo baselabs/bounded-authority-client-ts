@@ -21,6 +21,14 @@ The first version intended for npm: everything in 0.1.0, plus the changes below.
   `test/ci-paths.test.ts` fails if the filter excludes any of those files.
 - The release workflow's verify job also runs `pnpm check:install`, and its comments describe
   the release process without internal wording.
+- **New: `parentContextFromGrant`** reads the parent context (`jti`, holder thumbprint,
+  audiences, operations, `nbf`, `exp`) from the compact v2 parent grant, through the verifier
+  package's `v2.decodeGrant`.
+- **Fixed: `materializeChild` refused valid v2 parents.** A parent may now carry every selector a
+  v2 grant accepts (the verifier's `v2.parseSelector` decides): an `all` selector with inert
+  members and fractional `lte`/`gte` bounds. New types `ParentOperation` and `ParentSelector`;
+  `ParentContext.operations` uses them. An inherited `all` becomes a plain `all`, and an inherited
+  fractional bound is refused, because REQ-2 bounds are integers.
 - The browser lane closes its local server when a browser fails to launch, so a missing browser
   build fails the lane instead of hanging it.
 - `docs/req2-projection.md`: the examples table now matches the vectors, and the epoch-second

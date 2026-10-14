@@ -10,7 +10,8 @@ const ascii = new TextDecoder("ascii");
 
 const decimal = (n: number): Uint8Array => utf8(String(n));
 
-function tagged(v: JsonValue): Tagged {
+/** A validated JSON value in the verifier package's tagged form (integral numbers are int-tagged). */
+export function tagged(v: JsonValue): Tagged {
   if (v === null) return { t: "null" };
   if (typeof v === "boolean") return { t: "bool", v };
   if (typeof v === "number") return Number.isInteger(v) ? { t: "int", v } : { t: "float", v };

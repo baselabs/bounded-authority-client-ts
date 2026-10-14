@@ -119,6 +119,14 @@ const MUTATIONS = [
   { id: "accept-long-path", rule: "paths have at most 32 components", file: "src/boundary.ts",
     find: 'if (parts.length > MAX_PATH_COMPONENTS) fail("path too long");', replace: "", expect: "a 33-component selector path" },
 
+  // ---- parent operations ---------------------------------------------------------------------
+  { id: "parent-selector-unchecked", rule: "a parent selector is accepted only when the v2 profile accepts it", file: "src/boundary.ts",
+    find: "  v2.parseSelector(tagged(copy));\n", replace: "", expect: "parent refused: an all selector with path only" },
+  { id: "inherit-all-keeps-inert", rule: "an inherited all is a plain all", file: "src/boundary.ts",
+    find: '(s.kind === "all" ? { kind: "all" } : s)', replace: "s", expect: "parent: an inherited all with inert members" },
+  { id: "inherit-skips-child-rules", rule: "an inherited selector must satisfy the child rules", file: "src/boundary.ts",
+    find: "  return parseOperations(\n    operations.map(", replace: "  return (\n    operations.map(", expect: "parent: an inherited fractional bound is refused" },
+
   // ---- size and count limits -----------------------------------------------------------------
   { id: "accept-65-audiences", rule: "at most 64 audiences", file: "src/boundary.ts",
     find: "nonEmptyArray(u, MAX_AUDIENCES)", replace: "nonEmptyArray(u, Number.POSITIVE_INFINITY)", expect: "audiences: at most 64" },

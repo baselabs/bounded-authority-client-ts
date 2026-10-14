@@ -1,10 +1,11 @@
-// @bounded-authority/client: the wire contract, contract cases, and vectors a client needs for the
+// @bounded-authority/client: the wire contract, contract cases, and vectors a client needs for a
 // bounded authority service. This release carries one function family: the REQ-2 reauthorization
-// request digest. See docs/req2-projection.md.
-import { err, fail, jsonDecode, ok } from "@bounded-authority-protocol/verifier";
+// request digest, and the parent context it inherits from. See docs/req2-projection.md.
+import { base64urlEncode, err, fail, jsonDecode, ok, v2 } from "@bounded-authority-protocol/verifier";
 import type { Result } from "@bounded-authority-protocol/verifier";
 import {
   closedKeysOf,
+  inheritOperations,
   parseConsumerId,
   parseInvocationId,
   parseMaterializedChild,
@@ -13,6 +14,7 @@ import {
   parseRequestedChild,
   readMember,
   recordOf,
+  SUPPORTED_PARENT_MAJOR,
   wellFormedText,
 } from "./boundary.js";
 import { encodeProjection, requestSha256 } from "./projection.js";
@@ -23,8 +25,10 @@ import type {
   ReauthorizationDigestInput,
   RequestedChild,
 } from "./types.js";
-import { fromTagged, wireChildToTyped } from "./wire.js";
+import { fromTagged, grantOperations, wireChildToTyped } from "./wire.js";
 import { utf8 } from "./bytes.js";
+
+const ascii = new TextDecoder("ascii");
 
 export type {
   CumulativePolicy,
@@ -33,6 +37,8 @@ export type {
   Operation,
   ParentContext,
   ParentIdentity,
+  ParentOperation,
+  ParentSelector,
   ReauthorizationDigest,
   ReauthorizationDigestInput,
   RequestedChild,
@@ -82,7 +88,9 @@ export function childFromWireText(jsonText: string): Result<RequestedChild> {
 /**
  * Fills a child's `null` audiences, operations, not-before, and expiry from the parent's exact
  * values. Refuses a thumbprint equal to the parent's and any parent whose contract major is not 2.
- * The cumulative policy is never inherited.
+ * The cumulative policy is never inherited. The parent's selectors follow the v2 grant rules; an
+ * inherited `all` becomes a plain `all`, and an inherited fractional bound is refused (REQ-2
+ * bounds are integers).
  */
 export function materializeChild(child: RequestedChild, parent: ParentContext): Result<MaterializedChild> {
   return guarded(() => {
@@ -92,7 +100,7 @@ export function materializeChild(child: RequestedChild, parent: ParentContext): 
     return {
       holderThumbprint: c.holderThumbprint,
       audiences: c.audiences ?? p.audiences,
-      operations: c.operations ?? p.operations,
+      operations: c.operations ?? inheritOperations(p.operations),
       notBefore: c.notBefore ?? p.notBefore,
       expiresAt: c.expiresAt ?? p.expiresAt,
       ...(c.cumulativePolicy === undefined ? {} : { cumulativePolicy: c.cumulativePolicy }),
@@ -116,5 +124,30 @@ export function reauthorizationRequestDigest(input: ReauthorizationDigestInput):
     if (child.holderThumbprint === parent.holderThumbprint) fail("child holder thumbprint equals the parent's");
     const projection = encodeProjection({ parentJti: parent.jti, invocationId, consumerId, child });
     return { projection, requestSha256: requestSha256(projection) };
+  });
+}
+
+/**
+ * Reads the parent context a child inherits from: the parent grant's `jti`, holder thumbprint
+ * (`cnf.jkt`), audiences, operations, `nbf`, and `exp`, from the compact v2 grant the holder
+ * already has. The grant is decoded with the verifier package's `v2.decodeGrant`, which checks its
+ * structure but not its signature: verify it with `v2.verifyGrant` first when its origin matters.
+ * Refuses anything that is not a well-formed v2 grant (a v1 or v3 grant included).
+ */
+export function parentContextFromGrant(grantCompact: string): Result<ParentContext> {
+  return guarded(() => {
+    const compact = utf8(wellFormedText(grantCompact));
+    const decoded = v2.decodeGrant(compact);
+    if (!decoded.ok) fail("not a well-formed v2 grant");
+    const g = decoded.value;
+    return parseParentContext({
+      jti: g.grantId,
+      contractMajor: SUPPORTED_PARENT_MAJOR,
+      holderThumbprint: ascii.decode(base64urlEncode(g.holderThumbprint)),
+      audiences: g.audiences,
+      operations: grantOperations(compact),
+      notBefore: g.notBefore,
+      expiresAt: g.expiresAt,
+    });
   });
 }
